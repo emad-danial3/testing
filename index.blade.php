@@ -76,18 +76,18 @@
         </div>
 
 
-           <div class="form-group">
-               <label>Payment Status</label>
-               <select name="type" class="form-control" id="orderType">
-                   <option value="">Select Type</option>
-                   <option value=""  @if(app('request')->input('type') == '')selected @endif>All</option>
-                   <option value="PENDING" @if(app('request')->input('type') == 'PENDING')selected @endif>PENDING</option>
-                   <option value="PAID" @if(app('request')->input('type') == 'PAID')selected @endif>PAID</option>
-                   <option value="EXPIRED" @if(app('request')->input('type') == 'EXPIRED')selected @endif>EXPIRED</option>
-                   <option value="DELETED" @if(app('request')->input('type') == 'DELETED')selected @endif>DELETED</option>
-                   <option value="CANCELED" @if(app('request')->input('type') == 'CANCELED')selected @endif>CANCELED</option>
-               </select>
-           </div>
+        <div class="form-group">
+            <label>Payment Status</label>
+            <select name="type" class="form-control" id="orderType">
+                <option value="">Select Type</option>
+                <option value=""  @if(app('request')->input('type') == '')selected @endif>All</option>
+                <option value="PENDING" @if(app('request')->input('type') == 'PENDING')selected @endif>PENDING</option>
+                <option value="PAID" @if(app('request')->input('type') == 'PAID')selected @endif>PAID</option>
+                <option value="EXPIRED" @if(app('request')->input('type') == 'EXPIRED')selected @endif>EXPIRED</option>
+                <option value="DELETED" @if(app('request')->input('type') == 'DELETED')selected @endif>DELETED</option>
+                <option value="CANCELED" @if(app('request')->input('type') == 'CANCELED')selected @endif>CANCELED</option>
+            </select>
+        </div>
 
         <!-- /.card-header -->
         <div class="card-body" style="overflow-x:scroll">
@@ -126,8 +126,9 @@
                         <th>Control</th>
                         <th>Charge</th>
                         <th>Update Status</th>
+                        <th>Pickup</th>
                         @if(Auth::guard('admin')->user()->id == 13)
-                        <th>Refund</th>
+                            <th>Refund</th>
                         @endif
                     </tr>
                     </thead>
@@ -165,26 +166,15 @@
                             <td>
                                 <a class="btn btn-success" href="{{route('orderHeaders.show',$row)}}" target="_blank">View Invoice</a>
                             </td>
-                             <td>
+                            <td>
                                 @if($row->payment_status== 'PAID')
-                                    <form method="post" action="{{route('orderHeaders.ExportOrderCharge')}}" enctype="multipart/form-data">
-                                        @csrf
-                                        <div class="row">
-                                            <input type="hidden" name="order_id" class="form-control" value="{{$row->id}}">
-                                            <input type="hidden" name="user_name" class="form-control" value="{{($row->createdFor)?$row->createdFor->full_name:''}}">
-                                            <input type="hidden" name="user_phone" class="form-control" value="{{(isset($row->createdFor))?$row->createdFor->phone:''}}">
-                                            <input type="hidden" name="user_city" class="form-control" value="{{(isset($row->createdFor))?$row->city:''}}">
-                                            <input type="hidden" name="user_address" class="form-control" value="{{(isset($row->createdFor))?$row->address:''}}">
-                                            <input type="hidden" name="user_area" class="form-control" value="{{(isset($row->createdFor))?$row->area:''}}">
-                                            <div class="form-group col-12">
-                                                <button type="submit" class="btn btn-success form-control">شحن</button>
-                                            </div>
-                                        </div>
-                                    </form>
+                                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModalCenter" onclick="goToSpecificCharge('{{$row->id}}','{{($row->createdFor)?$row->createdFor->full_name:''}}','{{(isset($row->createdFor))?$row->createdFor->phone:''}}','{{(isset($row->createdFor))?$row->address:''}}')">
+                                        شحن
+                                    </button>
                                 @endif
                             </td>
                             <td>
-                                @if($row->payment_status== 'PAID')
+                                @if($row->payment_status== 'PAID'&& $row->waybillNumber)
                                     <form method="post" action="{{route('orderHeaders.changeOrderChargeStatus')}}" enctype="multipart/form-data">
                                         @csrf
                                         <div class="row">
@@ -196,35 +186,44 @@
                                     </form>
                                 @endif
                             </td>
-                            @if(Auth::guard('admin')->user()->id == 13)
                             <td>
-                                <a class="btn btn-success" href="{{route('orderHeaders.edit',$row)}}" target="_blank">Refund Invoice</a>
+                                @if($row->payment_status== 'PAID' && $row->waybillNumber)
+
+                                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModalCreatePickupRequest" onclick="goToSpecificPickup('{{$row->id}}')">
+                                        تحميل
+                                    </button>
+
+                                @endif
                             </td>
+                            @if(Auth::guard('admin')->user()->id == 13)
+                                <td>
+                                    <a class="btn btn-success" href="{{route('orderHeaders.edit',$row)}}" target="_blank">Refund Invoice</a>
+                                </td>
                             @endif
                         </tr>
                     @endforeach
                     </tbody>
-{{--                    <tfoot>--}}
-{{--                    <tr>--}}
-{{--                        <th> <input type="checkbox" id="select-all"></th>--}}
-{{--                        <th>Invoice Number</th>--}}
-{{--                        <th>payment_code</th>--}}
-{{--                        <th>total_order</th>--}}
-{{--                        <th>User Name</th>--}}
-{{--                        <th>User Serial Number</th>--}}
-{{--                        <th>order_type</th>--}}
-{{--                        <th>shipping_amount</th>--}}
-{{--                        <th>payment_status</th>--}}
-{{--                        <th>order_status</th>--}}
-{{--                        <th>shipping_date</th>--}}
-{{--                        <th>delivery_date</th>--}}
-{{--                        <th>wallet_status</th>--}}
-{{--                        <th>wallet_used_amount</th>--}}
-{{--                        <th>gift_category_id</th>--}}
-{{--                        <th>Date</th>--}}
-{{--                        <th>Control</th>--}}
-{{--                    </tr>--}}
-{{--                    </tfoot>--}}
+                    {{--                    <tfoot>--}}
+                    {{--                    <tr>--}}
+                    {{--                        <th> <input type="checkbox" id="select-all"></th>--}}
+                    {{--                        <th>Invoice Number</th>--}}
+                    {{--                        <th>payment_code</th>--}}
+                    {{--                        <th>total_order</th>--}}
+                    {{--                        <th>User Name</th>--}}
+                    {{--                        <th>User Serial Number</th>--}}
+                    {{--                        <th>order_type</th>--}}
+                    {{--                        <th>shipping_amount</th>--}}
+                    {{--                        <th>payment_status</th>--}}
+                    {{--                        <th>order_status</th>--}}
+                    {{--                        <th>shipping_date</th>--}}
+                    {{--                        <th>delivery_date</th>--}}
+                    {{--                        <th>wallet_status</th>--}}
+                    {{--                        <th>wallet_used_amount</th>--}}
+                    {{--                        <th>gift_category_id</th>--}}
+                    {{--                        <th>Date</th>--}}
+                    {{--                        <th>Control</th>--}}
+                    {{--                    </tr>--}}
+                    {{--                    </tfoot>--}}
                 </table>
                 <div class="pagination">
 
@@ -289,8 +288,99 @@
         </div>
         <!-- /.card-body -->
     </div>
+
+
+
+
+    <!-- Modal for CreateWaybill -->
+    <div class="modal fade" id="exampleModalCenter" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLongTitle">Order address</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form method="post" action="{{route('orderHeaders.ExportOrderCharge')}}" enctype="multipart/form-data">
+                        @csrf
+                        <div class="row">
+                            <div class="form-group col-md-12">
+                                <label for="user_city">City</label>
+                                <input class="form-control" type="text" id="user_city" name="user_city"  placeholder="Enter City like CAIRO" required>
+                            </div>
+                            <div class="form-group col-md-12">
+                                <label for="user_area">Area</label>
+                                <input class="form-control" type="text" id="user_area" name="user_area" placeholder="Enter Area" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <input type="hidden" name="order_id" id="order_id" class="form-control" >
+                            <input type="hidden" name="user_name" id="user_name_charge" class="form-control" >
+                            <input type="hidden" name="user_phone" id="user_phone" class="form-control" >
+                            {{--                            <input type="hidden" name="user_city" class="form-control" >--}}
+                            <input type="hidden" name="user_address" id="user_address" class="form-control" >
+                            {{--                            <input type="hidden" name="user_area" class="form-control" >--}}
+                            <div class="form-group col-12">
+                                <button type="submit" class="btn btn-success form-control" onclick="$('#exampleModalCenter').modal('hide');">شحن</button>
+                            </div>
+                        </div>
+                    </form>
+
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Modal CreatePickupRequest -->
+    <div class="modal fade" id="exampleModalCreatePickupRequest" tabindex="-1" role="dialog" aria-labelledby="exampleModalCreatePickupRequestTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLongTitle">Order Pickup</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form method="post" action="{{route('orderHeaders.CreatePickupRequest')}}" enctype="multipart/form-data">
+                        @csrf
+                        <div class="row">
+                            <div class="form-group col-md-12">
+                                <label for="user_city">City</label>
+                                <input class="form-control" type="text" id="user_city" name="user_city"  placeholder="Enter City like CAIRO" required>
+                            </div>
+                            <div class="form-group col-md-12">
+                                <label for="user_area">Area</label>
+                                <input class="form-control" type="text" id="user_area" name="user_area" placeholder="Enter Area" required>
+                            </div>
+                            <div class="form-group col-md-12">
+                                <label for="user_area">Pickup Date</label>
+                                <input class="form-control" type="date" id="pickupDate" name="pickupDate" placeholder="pickup Date" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <input type="hidden" name="order_id" id="order_id_pickup" class="form-control" >
+                            <div class="form-group col-12">
+                                <button type="submit" class="btn btn-success form-control" onclick="$('#exampleModalCreatePickupRequest').modal('hide');">تحميل</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
     @push('scripts')
         <script type="text/javascript">
+
 
             function urlParamfun(name){
                 var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
@@ -321,6 +411,17 @@
                 console.log(type);
                 $("#payment_status").val(type);
             });
+
+
+            function goToSpecificCharge(order_id,user_name,user_phone,user_address){
+                $("#order_id").val(order_id);
+                $("#user_name_charge").val(user_name);
+                $("#user_phone").val(user_phone);
+                $("#user_address").val(user_address);
+            }
+            function goToSpecificPickup(order_id){
+                $("#order_id_pickup").val(order_id);
+            }
 
 
         </script>

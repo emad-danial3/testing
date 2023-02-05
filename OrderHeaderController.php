@@ -3,92 +3,104 @@
 namespace App\Http\Controllers\Admin;
 
 
-
 use App\Constants\OrderTypes;
 use App\Exports\OrdersExport;
 use App\Exports\OrderUserExport;
 use App\Exports\ShippingSheetSheetExport;
 use App\Http\Controllers\Application\FawryPaymentController;
+use App\Http\Repositories\IWalletEvaluationRepository;
 use App\Http\Requests\ChangeStatusRequest;
 use App\Http\Requests\ExportOrderHeadersSheet;
 use App\Http\Requests\ExportShippingSheetSheetRequest;
 use App\Http\Requests\OrderHeaderRequest;
+use App\Http\Repositories\IUserRepository;
 use App\Http\Services\CartService;
 use App\Http\Services\CommissionService;
 use App\Http\Services\OrderService;
+use App\Http\Services\PaidOrderActions\SingleOrderPaidActions;
 use App\Http\Services\UserService;
 use App\Models\Area;
 use App\Models\Category;
 use App\Models\City;
 use App\Models\OrderHeader;
 use App\Models\OrderLine;
-use App\Models\RtoSOrders;
 use App\Models\Product;
 use App\Models\User;
+use App\Models\RtoSOrders;
+use App\Models\UserCommission;
+use App\Models\UserWallet;
 use Illuminate\Http\Request;
 use App\Http\Services\OrderLinesService;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Http\Repositories\IUserWalletRepository;
+
 use Auth;
-
-
-
 
 
 class OrderHeaderController extends HomeController
 {
-     private $OrderHeaderService;
+    private $OrderHeaderService;
     private $OrderRequest;
-    protected  $CartService;
-    protected  $UserService;
-    private  $OrderLinesService;
+    protected $CartService;
+    protected $UserService;
+    private $UserRepository;
+    private $OrderLinesService;
+    private $UserWalletRepository;
+    private $WalletEvaluationRepository;
+    private $SingleOrderPaidActions;
 
-    public function __construct(OrderService $OrderHeaderService ,   CommissionService  $CommissionService, OrderLinesService $OrderLinesService,Request  $OrderRequest,CartService $CartService,UserService $UserService)
+    public function __construct(OrderService $OrderHeaderService,  IUserRepository       $UserRepository, SingleOrderPaidActions      $SingleOrderPaidActions, IWalletEvaluationRepository $WalletEvaluationRepository, IUserWalletRepository $UserWalletRepository, CommissionService $CommissionService, OrderLinesService $OrderLinesService, Request $OrderRequest, CartService $CartService, UserService $UserService)
     {
-        $this->OrderHeaderService  = $OrderHeaderService;
-        $this->OrderRequest        = $OrderRequest;
-        $this->CartService=$CartService;
-        $this->UserService=$UserService;
-        $this->OrderLinesService     = $OrderLinesService;
-        $this->CommissionService     = $CommissionService;
+        $this->OrderHeaderService = $OrderHeaderService;
+        $this->OrderRequest = $OrderRequest;
+        $this->CartService = $CartService;
+        $this->UserRepository = $UserRepository;
+        $this->UserService = $UserService;
+        $this->OrderLinesService = $OrderLinesService;
+        $this->CommissionService = $CommissionService;
+        $this->UserWalletRepository = $UserWalletRepository;
+        $this->WalletEvaluationRepository = $WalletEvaluationRepository;
+        $this->SingleOrderPaidActions        = $SingleOrderPaidActions;
     }
 
     public function index()
     {
         $data = $this->OrderHeaderService->getAll(request()->all());
-        return view('AdminPanel.PagesContent.OrderHeaders.index')->with('orderHeaders',$data);
+        return view('AdminPanel.PagesContent.OrderHeaders.index')->with('orderHeaders', $data);
     }
 
-  public function getOracleNumberByOrderId(Request $request)
+    public function getOracleNumberByOrderId(Request $request)
     {
 
         $name = $request->name;
         $date_to = $request->date_to;
         $date_from = $request->date_from;
-        $oracle_numbers='';
-        $orders=[];
-        if(((isset($date_to) && $date_to !='') && (isset($date_from) && $date_from !='')) ||(isset($name) && $name !='')){
-            $orders=OrderHeader::with('order_lines');
-            if ((isset($date_to) && $date_to !='') && (isset($date_from) && $date_from !='')){
-                $orders=$orders->whereBetween('created_at',[ $date_from,$date_to]);
+        $oracle_numbers = '';
+        $orders = [];
+        if (((isset($date_to) && $date_to != '') && (isset($date_from) && $date_from != '')) || (isset($name) && $name != '')) {
+            $orders = OrderHeader::with('order_lines');
+            if ((isset($date_to) && $date_to != '') && (isset($date_from) && $date_from != '')) {
+                $orders = $orders->whereBetween('created_at', [$date_from, $date_to]);
             }
-            if (isset($name) && $name !=''){
-                $orders=$orders->where('id',$name);
+            if (isset($name) && $name != '') {
+                $orders = $orders->where('id', $name);
             }
-            $orders=$orders->orderBy('order_headers.id','DESC')->get();
+            $orders = $orders->orderBy('order_headers.id', 'DESC')->get();
         }
         foreach ($orders as $lines) {
-            $lines->order_lines=$this->unique_multidimensional_array($lines->order_lines,'oracle_num');
+            $lines->order_lines = $this->unique_multidimensional_array($lines->order_lines, 'oracle_num');
         }
-        return view('AdminPanel.PagesContent.OrderHeaders.oracle',compact('name','orders','oracle_numbers','date_to','date_from'));
+        return view('AdminPanel.PagesContent.OrderHeaders.oracle', compact('name', 'orders', 'oracle_numbers', 'date_to', 'date_from'));
 //        return view('oracle_num',compact('name','orders','oracle_numbers','date_to','date_from'));
     }
 
-    function unique_multidimensional_array($array, $key) {
+    function unique_multidimensional_array($array, $key)
+    {
         $temp_array = array();
         $i = 0;
         $key_array = array();
-        foreach($array as $val) {
+        foreach ($array as $val) {
             if (!in_array($val[$key], $key_array)) {
                 $key_array[$i] = $val[$key];
                 $temp_array[$i] = $val;
@@ -98,128 +110,121 @@ class OrderHeaderController extends HomeController
         return $temp_array;
     }
 
-   
-   
     public function create()
     {
 
-        $products=Product::select('products.id','products.flag','products.full_name','products.name_en','products.name_ar','products.description_en',
-            'products.description_ar','products.image','products.oracle_short_code','products.discount_rate',
-            'products.price','products.price_after_discount','products.quantity')
-            ->where('products.stock_status','in stock');
-        $products=$products->skip(0)
+        $products = Product::select('products.id', 'products.flag', 'products.full_name', 'products.name_en', 'products.name_ar', 'products.description_en',
+            'products.description_ar', 'products.image', 'products.oracle_short_code', 'products.discount_rate',
+            'products.price', 'products.price_after_discount', 'products.quantity')
+            ->where('products.stock_status', 'in stock');
+        $products = $products->skip(0)
             ->take(10)->get();
 
         $user = $this->UserService->getUser(Auth::User()->id);
-        $min_required=$this->calculateMinRequired($user);
 
-//dd($products);
+        $min_required = $this->calculateMinRequired($user);
 
-        $categories=Category::
-        where([['id','!=',13]])
+        $categories = Category::
+        where([['id', '!=', 13]])
             ->select(['id', 'name_en', 'name_ar'])
             ->withCount('productStock')
             ->having('product_stock_count', '>', 0)
-            ->where('is_available',1)
+            ->where('is_available', 1)
             ->get()
             ->makeHidden('product_stock_count');
-        $cities =City::select(['name_en','id']) ->distinct()->get();
+        $cities = City::select(['name_en', 'id'])->distinct()->get();
 
-        return view('AdminPanel.PagesContent.OrderHeaders.form',compact('categories','products','cities','min_required'));
+        return view('AdminPanel.PagesContent.OrderHeaders.form', compact('categories', 'products', 'cities', 'min_required'));
 
     }
 
-    private function calculateMinRequired($user){
+    private function calculateMinRequired($user)
+    {
         //refactoring
-        
-         if (isset($user->stage) &&isset($user->freeaccount)){
-                     
-                if($user->stage<=2 && $user->freeaccount !=1)// activation premium account
-                    return $user->userType->min_required;
-                elseif ($user->stage<=2 && $user->freeaccount ==1)// activation free account
-                    return 125;
-        //        elseif ($user->stage == 3 && $user->freeaccount == 1) //single free order
-        //            return 150;
-                else
-                    return 150; //any single order
-            
-         }else
-            return 150;    
+        if (isset($user->stage) && isset($user->freeaccount)) {
+            if ($user->stage <= 2 && $user->freeaccount != 1)// activation premium account
+                return $user->userType->min_required;
+            elseif ($user->stage <= 2 && $user->freeaccount == 1)// activation free account
+                return 125;
+//        elseif ($user->stage == 3 && $user->freeaccount == 1) //single free order
+//            return 150;
+            else
+                return 150; //any single order
+        } else
+            return 150;
 
     }
- public function getAllproducts(Request $request)
+
+    public function getAllproducts(Request $request)
     {
 
-        $inputData=$request;
-        $products=Product::select('products.id','products.flag','products.full_name','products.name_en','products.name_ar','products.description_en',
-            'products.description_ar','products.image','products.oracle_short_code','products.discount_rate',
-            'products.price','products.price_after_discount','products.quantity')
-            ->where('products.stock_status','in stock');
+        $inputData = $request;
+        $products = Product::select('products.id', 'products.flag', 'products.full_name', 'products.name_en', 'products.name_ar', 'products.description_en',
+            'products.description_ar', 'products.image', 'products.oracle_short_code', 'products.discount_rate',
+            'products.price', 'products.price_after_discount', 'products.quantity')
+            ->where('products.stock_status', 'in stock');
 
-        if (isset($inputData['name']) && $inputData['name']!='')
-        {
-            $products->where('products.name_en', 'like', '%'.$inputData['name'].'%');
+        if (isset($inputData['name']) && $inputData['name'] != '') {
+            $products->where('products.name_en', 'like', '%' . $inputData['name'] . '%');
         }
-        if (isset($inputData['category_id']) && $inputData['category_id']!='')
-        {
-            $products->join('product_categories','product_categories.product_id' ,'products.id')
-                ->where('product_categories.category_id',$inputData['category_id']);
+        if (isset($inputData['category_id']) && $inputData['category_id'] != '') {
+            $products->join('product_categories', 'product_categories.product_id', 'products.id')
+                ->where('product_categories.category_id', $inputData['category_id']);
         }
-        $products=$products->skip(0)
+        $products = $products->skip(0)
             ->take(15)->get();
 
 //dd($products);
 
-     $response = [
-         'status' => 200,
-         'message' => "All Products",
-         'data' => $products
-     ];
-     return response()->json($response);
+        $response = [
+            'status' => 200,
+            'message' => "All Products",
+            'data' => $products
+        ];
+        return response()->json($response);
 
     }
 
- public function getAreasByCityID(Request $request)
+    public function getAreasByCityID(Request $request)
     {
-     $areas = Area::select('id','region_en')->where("city_id",$request->city_id)->get();
-     $response = [
-         'status' => 200,
-         'message' => "All Products",
-         'data' => $areas
-     ];
-     return response()->json($response);
+        $areas = Area::select('id', 'region_en')->where("city_id", $request->city_id)->get();
+        $response = [
+            'status' => 200,
+            'message' => "All Products",
+            'data' => $areas
+        ];
+        return response()->json($response);
     }
 
-    public function CalculateProductsAndShipping(Request  $request)
+    public function CalculateProductsAndShipping(Request $request)
     {
 
         $data = [
-            "user_id"             => request()->input('user_id'),
-            "address"             => request()->input('address'),
-            "landmark"            => request()->input('landmark'),
-            "building_number"     => request()->input('building_number'),
-            "floor_number"        => request()->input('floor_number'),
-            "apartment_number"    => request()->input('apartment_number'),
-            "city"                => request()->input('city'),
-            "area"                => request()->input('area'),
+            "user_id" => request()->input('user_id'),
+            "address" => request()->input('address'),
+            "landmark" => request()->input('landmark'),
+            "building_number" => request()->input('building_number'),
+            "floor_number" => request()->input('floor_number'),
+            "apartment_number" => request()->input('apartment_number'),
+            "city" => request()->input('city'),
+            "area" => request()->input('area'),
             "created_for_user_id" => request()->input('created_for_user_id'),
-            "order_type"          => request()->input('order_type'),
-            "gift_category_id"          => 0,
-            "items"               => request()->input('items')
+            "order_type" => request()->input('order_type'),
+            "gift_category_id" => 0,
+            "items" => request()->input('items')
         ];
-        $has_discount     = $this->UserService->userHasDiscount($data['created_for_user_id']);
-        $this->CartService->orderType=$data['order_type'];
-        $productsAndTotal = $this->CartService->calculateProducts($data["items"],$has_discount);
+        $has_discount = $this->UserService->userHasDiscount($data['created_for_user_id']);
+        $this->CartService->orderType = $data['order_type'];
+        $productsAndTotal = $this->CartService->calculateProducts($data["items"], $has_discount);
         if (!empty($productsAndTotal)) {
-            $this->CartService->saveProductsToCart($productsAndTotal['products'],$data['user_id'],$data['created_for_user_id']);
-            $productsAndTotal['shipping']         = $this->CartService->calculateShipping($data['created_for_user_id'],$data['order_type'],$productsAndTotal['totalProductsAfterDiscount']);
-            $productsAndTotal['allowed_services'] = $this->CartService->getServices($productsAndTotal['totalProductsAfterDiscount'],$data['user_id']);
-            $this->CartService->saveCartHeader($data['user_id'],$data['created_for_user_id'],$data['order_type'],$productsAndTotal['totalProducts'],$productsAndTotal['totalProductsAfterDiscount'],$productsAndTotal['shipping']);
-
+            $this->CartService->saveProductsToCart($productsAndTotal['products'], $data['user_id'], $data['created_for_user_id']);
+            $productsAndTotal['shipping'] = $this->CartService->calculateShipping($data['created_for_user_id'], $data['order_type'], $productsAndTotal['totalProductsAfterDiscount']);
+            $productsAndTotal['allowed_services'] = $this->CartService->getServices($productsAndTotal['totalProductsAfterDiscount'], $data['user_id']);
+            $this->CartService->saveCartHeader($data['user_id'], $data['created_for_user_id'], $data['order_type'], $productsAndTotal['totalProducts'], $productsAndTotal['totalProductsAfterDiscount'], $productsAndTotal['shipping']);
 
 
             $orderHeaderData = [
-                'payment_code' =>  NULL,
+                'payment_code' => NULL,
                 'total_order' => $productsAndTotal['totalProductsAfterDiscount'],
                 'user_id' => $data['user_id'],//created by
                 'created_for_user_id' => $data['created_for_user_id'],//created for
@@ -237,9 +242,8 @@ class OrderHeaderController extends HomeController
             $oorder = OrderHeader::create($orderHeaderData);
             $productsAndTotal['order_id'] = $oorder->id;
 
-            if (!empty($oorder))
-            {
-                $this->OrderLinesService->createOrderLines($oorder['id'] , $data['user_id'], $data['created_for_user_id']);
+            if (!empty($oorder)) {
+                $this->OrderLinesService->createOrderLines($oorder['id'], $data['user_id'], $data['created_for_user_id']);
                 $this->CommissionService->createCommission($oorder);
                 $this->OrderLinesService->deleteCartAndCartHeader($data['user_id'], $data['created_for_user_id']);
             }
@@ -266,28 +270,20 @@ class OrderHeaderController extends HomeController
 
     }
 
-
-
-
-
-
-
-
-
     public function show(OrderHeader $orderHeader)
     {
-        $orderNumber=$orderHeader->id;
-        $invoicesCount=OrderLine::select('oracle_num')->where('order_id',$orderNumber)->distinct()->count('oracle_num');
-        $invoicesNumber=OrderLine::select('oracle_num')->where('order_id',$orderNumber)->distinct()->get();
-        $invoicesLines =DB::select('SELECT ol.oracle_num ,p.price pprice,p.tax ptax,ol.price olprice,p.name_en psku,ol.quantity olquantity FROM order_lines ol,products p
-     	                        where 	ol.order_id ='.$orderNumber.'
+        $orderNumber = $orderHeader->id;
+        $invoicesCount = OrderLine::select('oracle_num')->where('order_id', $orderNumber)->distinct()->count('oracle_num');
+        $invoicesNumber = OrderLine::select('oracle_num')->where('order_id', $orderNumber)->distinct()->get();
+        $invoicesLines = DB::select('SELECT ol.oracle_num ,p.price pprice,p.tax ptax,ol.price olprice,p.name_en psku,ol.quantity olquantity FROM order_lines ol,products p
+     	                        where 	ol.order_id =' . $orderNumber . '
      	                        and ol.product_id = p.id ');
-        $invoicesTotalPrice=OrderLine::where('order_id',$orderNumber)->sum('quantity');
-        $user=User::where('id',$orderHeader->created_for_user_id)->first();
-        return view('AdminPanel.PagesContent.OrderHeaders.show',compact('orderHeader','invoicesNumber','invoicesCount','invoicesLines','invoicesTotalPrice','user'));
+        $invoicesTotalPrice = OrderLine::where('order_id', $orderNumber)->sum('quantity');
+        $user = User::where('id', $orderHeader->created_for_user_id)->first();
+        return view('AdminPanel.PagesContent.OrderHeaders.show', compact('orderHeader', 'invoicesNumber', 'invoicesCount', 'invoicesLines', 'invoicesTotalPrice', 'user'));
     }
 
-     public function edit(OrderHeader $orderHeader)
+    public function edit(OrderHeader $orderHeader)
     {
         $orderNumber = $orderHeader->id;
         $invoicesCount = OrderLine::select('oracle_num')->where('order_id', $orderNumber)->distinct()->count('oracle_num');
@@ -366,7 +362,7 @@ class OrderHeaderController extends HomeController
     }
 
 
-   
+
     public function update(Request $request, OrderHeader $orderHeader)
     {
         $this->refundOrderWallet($orderHeader->created_for_user_id,$orderHeader->total_order,$request->total_order);
@@ -382,12 +378,12 @@ class OrderHeaderController extends HomeController
         }
 
         if ($orderHeader->wallet_status == 'full_wallet') {
-                $mywallet = $this->UserWalletRepository->getCurrentWallet($orderHeader->created_for_user_id);
-                $mywallet->current_wallet=((float)$mywallet->current_wallet +  ((float)$orderHeader->total_order-(float)$request->total_order));
-                $mywallet->save();
+            $mywallet = $this->UserWalletRepository->getCurrentWallet($orderHeader->created_for_user_id);
+            $mywallet->current_wallet=((float)$mywallet->current_wallet +  ((float)$orderHeader->total_order-(float)$request->total_order));
+            $mywallet->save();
             $response['statusDescription']='Operation done successfully';
         }elseif($orderHeader->wallet_status == 'only_fawry'){
-             $response= $this->refundOrderPaymentOnline($orderHeader->total_order,$request->total_order,$orderHeader->payment_code);
+            $response= $this->refundOrderPaymentOnline($orderHeader->total_order,$request->total_order,$orderHeader->payment_code);
         }
         $statusDescription = $response['statusDescription']; // get response statusDescription
         return redirect('http://localhost:8000/admin/orderHeaders/'.$orderHeader->id.'/edit?message='.$statusDescription);
@@ -403,22 +399,21 @@ class OrderHeaderController extends HomeController
         $validated = $request->validated();
         try {
             if ($request->input('with') == 'user')
-                return Excel::download(new OrderUserExport($validated['start_date'],$validated['end_date'],$validated['payment_status']), 'orders.xlsx');
+                return Excel::download(new OrderUserExport($validated['start_date'], $validated['end_date'], $validated['payment_status']), 'orders.xlsx');
 
             else
-            return Excel::download(new OrdersExport($validated['start_date'],$validated['end_date'],$validated['payment_status']), 'orders.xlsx');
-        }
-        catch (\Exception $exception)
-        {
+                return Excel::download(new OrdersExport($validated['start_date'], $validated['end_date'], $validated['payment_status']), 'orders.xlsx');
+        } catch (\Exception $exception) {
 
             return redirect()->back()->withErrors(['error' => $exception->getMessage()]);
         }
     }
-    
     public function ExportOrderCharge(Request $request)
     {
+
         $oldbill=RtoSOrders::where('order_header_id',$request->order_id)->first();
         if(!$oldbill){
+//            CAIRO
             $data=[
                 "waybillRequestData" => [
                     "FromOU" => "",
@@ -428,8 +423,8 @@ class OrderHeaderController extends HomeController
                     "ConsigneeCode" => "00000",
                     "ConsigneeAddress" => $request->user_address,
                     "ConsigneeCountry" => "EG",
-                    "ConsigneeState" => "CAIRO",
-                    "ConsigneeCity" => "CAIRO",
+                    "ConsigneeState" =>  $request->user_city,
+                    "ConsigneeCity" => $request->user_area,
                     "ConsigneePincode" => "8523",
                     "ConsigneeName" => $request->user_name,
                     "ConsigneePhone" => $request->user_phone,
@@ -479,25 +474,30 @@ class OrderHeaderController extends HomeController
                 if($rrespose['messageType']=='Success'){
                     $rrespose['order_header_id']=$request->order_id;
                     RtoSOrders::create($rrespose);
+                    $updateOrder= OrderHeader::where('id',$request->order_id)->first();
+                    if($updateOrder){
+                        $updateOrder->waybillNumber=$rrespose['waybillNumber'];
+                        $updateOrder->save();
+                    }
                     $filename = 'chargePDF'.$request->order_id.'.pdf';
                     $tempImage = tempnam(sys_get_temp_dir(), $filename);
                     copy($rrespose['labelURL'], $tempImage);
                     return response()->download($tempImage, $filename);
                 }else{
-                    return redirect()->back()->withErrors(['error' => $rrespose['messageType']]);
+                    return redirect()->back()->withErrors(['error' => $rrespose['message']]);
                 }
 
             } catch (\Exception $exception) {
                 return redirect()->back()->withErrors(['error' => $exception->getMessage()]);
-        }
-       }else{
+            }
+        }else{
             $filename = 'chargePDF'.$request->order_id.'.pdf';
             $tempImage = tempnam(sys_get_temp_dir(), $filename);
             copy($oldbill['labelURL'], $tempImage);
             return response()->download($tempImage, $filename);
         }
     }
- public function changeOrderChargeStatus(Request $request)
+    public function changeOrderChargeStatus(Request $request)
     {
         $oldbill=RtoSOrders::where('order_header_id',$request->order_id)->first();
         $orderHeader=OrderHeader::where('id',$request->order_id)->first();
@@ -520,11 +520,44 @@ class OrderHeaderController extends HomeController
                 }
             } catch (\Exception $exception) {
                 return redirect()->back()->withErrors(['error' => $exception->getMessage()]);
+            }
         }
-       }
         return redirect()->back()->withErrors(['error' => 'no way bill Number']);
     }
+    public function CreatePickupRequest(Request $request)
+    {
+        $orderHeader=OrderHeader::where('id',$request->order_id)->first();
+        if($orderHeader&&$orderHeader->waybillNumber){
+            try {
+                $client = new \GuzzleHttp\Client();
+                $data=[
+                    'readyTime'      =>  '09:00:00',
+                    'latestTimeAvailable'       =>  '14:00:00',
+                    'pickupAddress'          =>  $orderHeader->address,
+                    'pickupCountry'  =>  "Egypt",
+                    'pickupState'  =>   $request->user_city,
+                    'pickupPincode'  =>  "",
+                    'pickupDate'  =>  $request->pickupDate, //2020-10-25
+                    'clientCode'  =>  "ACME",
+                    'consignorCode'  =>  "",
+                    'pickupCity'  =>  $request->user_area,
+                    'wayBillNumbers' =>  $orderHeader->waybillNumber,
+                ];
+                $response=  $client->request('POST','https://api.r2slogistics.com/CreatePickupRequest?secureKey=A3604E505DB24D118B9A2D48BDC336B3',['form_params'=>$data ,'verify' => false])->getBody()->getContents();
 
+                $rrespose = json_decode($response, true);
+                if($rrespose['messageType']=='Success'){
+                    return redirect()->back()->with('message', $rrespose['message']);
+                }else{
+                    return redirect()->back()->withErrors(['error' => $rrespose['message']]);
+                }
+
+            } catch (\Exception $exception) {
+                return redirect()->back()->withErrors(['error' => $exception->getMessage()]);
+            }
+        }
+        return redirect()->back()->withErrors(['error' => 'no way bill Number']);
+    }
 
     public function ExportShippingSheetSheet()
     {
@@ -535,10 +568,8 @@ class OrderHeaderController extends HomeController
     {
         $validated = $request->validated();
         try {
-            return Excel::download(new ShippingSheetSheetExport($validated['start_date'],$validated['end_date']), 'orders.xlsx');
-        }
-        catch (\Exception $exception)
-        {
+            return Excel::download(new ShippingSheetSheetExport($validated['start_date'], $validated['end_date']), 'orders.xlsx');
+        } catch (\Exception $exception) {
 
             return redirect()->back()->withErrors(['error' => $exception->getMessage()]);
         }
@@ -547,17 +578,18 @@ class OrderHeaderController extends HomeController
     public function ChangeStatusForOrder()
     {
         $orderHeaders = $this->OrderHeaderService->getPendingOrders();
-        return view('AdminPanel.PagesContent.OrderHeaders.changeOrderStatus',compact('orderHeaders'));
+        return view('AdminPanel.PagesContent.OrderHeaders.changeOrderStatus', compact('orderHeaders'));
     }
 
-    public function HandelChangeStatusForOrder(ChangeStatusRequest  $request)
+
+    public function HandelChangeStatusForOrder(ChangeStatusRequest $request)
     {
-        $inputs            = $request->validated();
-        $order_id          = $inputs['order_id'];
-        $data['item_code'] = "orderNumber-".$order_id;
+        $inputs = $request->validated();
+        $order_id = $inputs['order_id'];
+        $data['item_code'] = "orderNumber-" . $order_id;
         $this->OrderRequest->request->add([
             'fawryRefNumber' => '123454',
-            'orderStatus'    => 'PAID',
+            'orderStatus' => 'PAID',
             'paymentMethod' => 'BackEndPAY',
             'orderItems' => [
                 $data
