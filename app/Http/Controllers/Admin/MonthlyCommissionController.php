@@ -238,13 +238,13 @@ class MonthlyCommissionController extends HomeController
         $validated = $request->validated();
         $validated['start_date'] = Carbon::parse($validated['start_date'])->startOfDay()->toDateTimeString();
         $validated['end_date'] = Carbon::parse($validated['end_date'])->endOfDay()->toDateTimeString();
+
         $data = UserMonthlyCommission::where('created_at', '>', $validated['start_date'])
             ->where('created_at', '<', $validated['end_date'])->where('is_paid', $request->type ?? 1);
             if(isset($request->finance) &&$request->finance==1){
                 $data->where('personal_order', '1')->where('total_earnings', '>', 1);
             }
         $data=$data->orderBy('updated_at', 'desc')->get();
-            
 
         try {
             return Excel::download(new MonthCommissionsExport($validated['start_date'], $validated['end_date'], $data), 'monthcommissions.csv');

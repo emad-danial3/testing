@@ -48,8 +48,7 @@ class TestingOracleController extends Controller
                     'address'         =>  $userRow->address,
                 ];
                 // dd($data);
-                //   $this->response=  $client->request('POST','https://sales.atr-eg.com/api/save_user_nettinghub_4uNew.php',['form_params'=>$data ,'verify' => false])->getBody()->getContents();
-                  $this->response=  $client->request('POST','https://sales.atr-eg.com/api/save_user_nettinghub_4u.php',['form_params'=>$data ,'verify' => false])->getBody()->getContents();
+                  $this->response=  $client->request('POST','https://sales.atr-eg.com/api/save_user_nettinghub_4uNew.php',['form_params'=>$data ,'verify' => false])->getBody()->getContents();
                   Log::info($this->response);
             }catch (\Exception $e){
              $this->catch=$e->getMessage();

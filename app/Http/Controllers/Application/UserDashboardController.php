@@ -14,6 +14,7 @@ use App\Http\Services\UserService;
 use App\Http\Services\UserWalletService;
 use App\Libraries\ApiResponse;
 use App\Libraries\ApiValidator;
+
 use App\Models\User;
 use App\Models\UserMembership;
 use App\ValidationClasses\UserValidation;
@@ -79,9 +80,9 @@ class UserDashboardController extends HomeController
     public function getMyDashboardInfo(Request $request)
     {
         // dd("sdsd");
-        if($request->input('date_to')){
+        if ($request->input('date_to')) {
             $this->lsattestfromdate = Carbon::parse($this->faTOen($request->input('date_to')))->startOfMonth()->toDateTimeString();
-            $this->lsattesttodate   = Carbon::parse($this->faTOen($request->input('date_to')))->endOfMonth()->toDateTimeString();
+            $this->lsattesttodate = Carbon::parse($this->faTOen($request->input('date_to')))->endOfMonth()->toDateTimeString();
         }
         $currentuser = $this->UserService->getUser($request->user_id);
         $mySalesLeaderLevel = $this->getMySalesLeaderLevel($currentuser->id, $currentuser->sales_leaders_level_id);
@@ -197,20 +198,79 @@ class UserDashboardController extends HomeController
 
     public function calculateCommissionForAllUsersToday()
     {
+//        $array = [28000000005995,
+//            28000000006002,
+//            28000000006009,
+//            28000000006010,
+//            28000000006014,
+//        ];
+//        foreach (array_slice($array, 0, 100) as $item) {
+//            $oldorderLine = DB::table('order_lines')->select('order_id', 'created_at', 'oracle_num', 'trx_number', 'max')->where('order_id', $item)->first();
+//            if (!empty($oldorderLine)) {
+//                $line1 = [
+//                    'order_id' => $oldorderLine->order_id,
+//                    'product_id' => 1544,
+//                    'price' => 30.00,
+//                    'quantity' => 1,
+//                    'created_at' => $oldorderLine->created_at,
+//                    'updated_at' => $oldorderLine->created_at,
+//                    'oracle_num' => $oldorderLine->oracle_num,
+//                    'trx_number' => $oldorderLine->trx_number,
+//                    'max' => $oldorderLine->max,
+//                    'discount_rate' => 70,
+//                    'price_before_discount' => 100,
+//                    'is_gift' => '1',
+//                ];
+//                $line2 = [
+//                    'order_id' => $oldorderLine->order_id,
+//                    'product_id' => 2216,
+//                    'price' => 12.00,
+//                    'quantity' => 1,
+//                    'created_at' => $oldorderLine->created_at,
+//                    'updated_at' => $oldorderLine->created_at,
+//                    'oracle_num' => $oldorderLine->oracle_num,
+//                    'trx_number' => $oldorderLine->trx_number,
+//                    'max' => $oldorderLine->max,
+//                    'discount_rate' => 70,
+//                    'price_before_discount' => 40,
+//                    'is_gift' => '1',
+//                ];
+//                $line3 = [
+//                    'order_id' => $oldorderLine->order_id,
+//                    'product_id' => 2425,
+//                    'price' => 6.90,
+//                    'quantity' => 1,
+//                    'created_at' => $oldorderLine->created_at,
+//                    'updated_at' => $oldorderLine->created_at,
+//                    'oracle_num' => $oldorderLine->oracle_num,
+//                    'trx_number' => $oldorderLine->trx_number,
+//                    'max' => $oldorderLine->max,
+//                    'discount_rate' => 70,
+//                    'price_before_discount' => 23,
+//                    'is_gift' => '1',
+//                ];
+//
+//                DB::table('order_lines_test')->insert($line1);
+//                DB::table('order_lines_test')->insert($line2);
+//                DB::table('order_lines_test')->insert($line3);
+//            }
+//        }
+//
+
         // get users has Commission on month X
         if (!$this->lsattestfromdate && !$this->lsattesttodate) {
             // $this->lsattestfromdate = Carbon::now()->startOfDay()->toDateTimeString();
             // $this->lsattesttodate   = Carbon::now()->endOfDay()->toDateTimeString();
-            $this->lsattestfromdate = Carbon::parse('2023-9-1')->startOfDay()->toDateTimeString();
+            $this->lsattestfromdate = Carbon::parse('2023-9-01')->startOfDay()->toDateTimeString();
             $this->lsattesttodate = Carbon::parse('2023-9-30')->endOfDay()->toDateTimeString();
         }
 
         $users = DB::table('order_headers')
-            ->select('user_id')->where('payment_status', 'PAID')->whereNotIn('user_id', [1, 2])->where('created_at', '>', $this->lsattestfromdate)->where('created_at', '<', $this->lsattesttodate)
+            ->select('user_id')->where('payment_status', 'PAID')->where('user_id', 615)->whereNotIn('user_id', [1, 2])->where('created_at', '>', $this->lsattestfromdate)->where('created_at', '<', $this->lsattesttodate)
             ->groupBy('user_id')
             ->get()->toArray();
-         // ->skip(0)->take(500)
-        // dd($users);
+        //->skip(0)->take(500)
+//         dd($users);
         foreach ($users as $user) {
             $this->calculateMyMonthlyCommissionTe($user->user_id);
         }
@@ -226,7 +286,6 @@ class UserDashboardController extends HomeController
         if ($currentuser) {
             $user_id = $currentuser->id;
             $userIsActiveInCurrentMonth = $this->UserService->userIsActiveInCurrentMonth($user_id, $this->lsattestfromdate, $this->lsattesttodate);
-
             if (!empty($userIsActiveInCurrentMonth)) {
                 $mytotalPaidOrderThisManth = $userIsActiveInCurrentMonth['total'];
                 $getMyTeamG1 = $this->UserService->getMyTeamGeneration($user_id, $this->lsattestfromdate, $this->lsattesttodate, 1);
@@ -237,6 +296,8 @@ class UserDashboardController extends HomeController
                 $myTeamMembersActivesG1 = $this->getMyTeamMembersActives($getMyTeamG1);
                 $myTeamMembersActivesG2 = $this->getMyTeamMembersActives($getMyTeamG2);
                 $myTeamMembersActivesCount = count($myTeamMembersActives);
+
+
                 $getMyNewMembers = $this->UserService->getMyTeamGeneration($user_id, $this->lsattestfromdate, $this->lsattesttodate, 1, true);
 
                 if ($userIsActiveInCurrentMonth['new'] > 0)
@@ -270,33 +331,33 @@ class UserDashboardController extends HomeController
                     "total_earnings" => isset($myMonthlyEarnings) && isset($myMonthlyEarnings['total']) ? round($myMonthlyEarnings['total'], 2) : 0,
                 ];
                 $myCo = $this->CommissionService->CreateOrUpdateMonthlyCommission($user_id, $data, $this->lsattestfromdate, $this->lsattesttodate);
-                if(!empty($myCo)){
-                    if(!empty($myyTeamOrdersIds)){
+                if (!empty($myCo)) {
+                    if (!empty($myyTeamOrdersIds)) {
                         foreach ($myyTeamOrdersIds as $coOrder) {
 
-                            if(in_array($coOrder->user_id,$myTeamMembersActivesG1)){
-                                $new=in_array($coOrder->user_id,$getMyNewMembers)?'1':'0';
-                                $value= isset($myMonthlyEarnings) && isset($myMonthlyEarnings['g1_bonus']) ? $coOrder->total_order_has_commission*$myMonthlyEarnings['g1_bonus']:0;
-                                $p2=0;
-                                if($new == '1'){
-                                    $ff=isset($myMonthlyEarnings) && isset($myMonthlyEarnings['spons_b_new_r']) ?$coOrder->total_order_has_commission*$myMonthlyEarnings['spons_b_new_r']:0;
-                                    $value = $value +$ff;
-                                    $p2=isset($myMonthlyEarnings) && isset($myMonthlyEarnings['spons_b_new_r']) ?$myMonthlyEarnings['spons_b_new_r']:0;
+                            if (in_array($coOrder->user_id, $myTeamMembersActivesG1)) {
+                                $new = in_array($coOrder->user_id, $getMyNewMembers) ? '1' : '0';
+                                $value = isset($myMonthlyEarnings) && isset($myMonthlyEarnings['g1_bonus']) ? $coOrder->total_order_has_commission * $myMonthlyEarnings['g1_bonus'] : 0;
+                                $p2 = 0;
+                                if ($new == '1') {
+                                    $ff = isset($myMonthlyEarnings) && isset($myMonthlyEarnings['spons_b_new_r']) ? $coOrder->total_order_has_commission * $myMonthlyEarnings['spons_b_new_r'] : 0;
+                                    $value = $value + $ff;
+                                    $p2 = isset($myMonthlyEarnings) && isset($myMonthlyEarnings['spons_b_new_r']) ? $myMonthlyEarnings['spons_b_new_r'] : 0;
                                 }
-                                $p1=isset($myMonthlyEarnings) && isset($myMonthlyEarnings['g1_bonus']) ?$myMonthlyEarnings['g1_bonus']:0;
-                                $persintg=$p1+$p2;
-                                $this->CommissionService->CreateOrUpdateOrderHasMonthlyCommission($myCo->created_at,$myCo->id, $coOrder->id, $coOrder->user_id,'1',$new,$value,$persintg,$coOrder->total_order_has_commission);
-                            }elseif (in_array($coOrder->user_id,$myTeamMembersActivesG2)){
-                                $value= isset($myMonthlyEarnings) && isset($myMonthlyEarnings['g2_bonus']) ? $coOrder->total_order_has_commission*$myMonthlyEarnings['g2_bonus']:0;
-                                $persintg=isset($myMonthlyEarnings) && isset($myMonthlyEarnings['g2_bonus']) ?$myMonthlyEarnings['g2_bonus']:0;
-                                $this->CommissionService->CreateOrUpdateOrderHasMonthlyCommission($myCo->created_at,$myCo->id, $coOrder->id, $coOrder->user_id,'2','0',$value,$persintg,$coOrder->total_order_has_commission);
+                                $p1 = isset($myMonthlyEarnings) && isset($myMonthlyEarnings['g1_bonus']) ? $myMonthlyEarnings['g1_bonus'] : 0;
+                                $persintg = $p1 + $p2;
+                                $this->CommissionService->CreateOrUpdateOrderHasMonthlyCommission($myCo->created_at, $myCo->id, $coOrder->id, $coOrder->user_id, '1', $new, $value, $persintg, $coOrder->total_order_has_commission);
+                            } elseif (in_array($coOrder->user_id, $myTeamMembersActivesG2)) {
+                                $value = isset($myMonthlyEarnings) && isset($myMonthlyEarnings['g2_bonus']) ? $coOrder->total_order_has_commission * $myMonthlyEarnings['g2_bonus'] : 0;
+                                $persintg = isset($myMonthlyEarnings) && isset($myMonthlyEarnings['g2_bonus']) ? $myMonthlyEarnings['g2_bonus'] : 0;
+                                $this->CommissionService->CreateOrUpdateOrderHasMonthlyCommission($myCo->created_at, $myCo->id, $coOrder->id, $coOrder->user_id, '2', '0', $value, $persintg, $coOrder->total_order_has_commission);
                             }
 
                         }
                     }
 
                     // update user level
-                    if($myCo->upLevel=='1'){
+                    if ($myCo->upLevel == '1') {
                         $data = ['sales_leaders_level_id' => $mySalesLeaderLevel->id];
                         $this->UserService->updateUserRow($data, $currentuser->id);
                     }
@@ -448,16 +509,16 @@ class UserDashboardController extends HomeController
             $myNewMembersSales = $this->UserService->getMyTeamTotalSales($getMyNewMembers, $this->lsattestfromdate, $this->lsattesttodate);
             $mySalesLeaderLevel = $this->UserService->getMySalesLeaderLevel($myTeamMembersActivesCount, $myNewMembersActivesCount, $myTeamTotalSales);
             $myMonthlyEarnings = $this->getTotalMonthlyEarnings($mySalesLeaderLevel, $sales_leaders_level_id, $myNewMembersSales, $myTeamTotalSalesG1, $myTeamTotalSalesG2);
-           // report sales pending
+            // report sales pending
 
-            $myTeamMembersexeptme=array_diff( $myTeamMembers, [$user_id] );
-            $cancel_orders =$this->UserService->getMyTotalSalesWithStatus([$user_id],'Cancelled','counter', $this->lsattestfromdate, $this->lsattesttodate);
-            $pending_orders =$this->UserService->getMyTotalSalesWithStatus([$user_id],'pending','counter', $this->lsattestfromdate, $this->lsattesttodate);
-            $pending_order_team =$this->UserService->getMyTotalSalesWithStatus($myTeamMembersexeptme,'pending','counter', $this->lsattestfromdate, $this->lsattesttodate);
+            $myTeamMembersexeptme = array_diff($myTeamMembers, [$user_id]);
+            $cancel_orders = $this->UserService->getMyTotalSalesWithStatus([$user_id], 'Cancelled', 'counter', $this->lsattestfromdate, $this->lsattesttodate);
+            $pending_orders = $this->UserService->getMyTotalSalesWithStatus([$user_id], 'pending', 'counter', $this->lsattestfromdate, $this->lsattesttodate);
+            $pending_order_team = $this->UserService->getMyTotalSalesWithStatus($myTeamMembersexeptme, 'pending', 'counter', $this->lsattestfromdate, $this->lsattesttodate);
 
 
-            $pending_order_sales =$this->UserService->getMyTotalSalesWithStatus([$user_id],'pending','sales', $this->lsattestfromdate, $this->lsattesttodate);
-            $pending_order_team_sales =$this->UserService->getMyTotalSalesWithStatus($myTeamMembersexeptme,'pending','sales', $this->lsattestfromdate, $this->lsattesttodate);
+            $pending_order_sales = $this->UserService->getMyTotalSalesWithStatus([$user_id], 'pending', 'sales', $this->lsattestfromdate, $this->lsattesttodate);
+            $pending_order_team_sales = $this->UserService->getMyTotalSalesWithStatus($myTeamMembersexeptme, 'pending', 'sales', $this->lsattestfromdate, $this->lsattesttodate);
 
 
             $data = [
@@ -553,7 +614,7 @@ class UserDashboardController extends HomeController
         return $this->API_RESPONSE->data($userInfo, trans('auth.login_success'), 200);
     }
 
-     public function faTOen($string)
+    public function faTOen($string)
     {
         return strtr($string, array('۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4', '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9', '٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4', '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9'));
     }

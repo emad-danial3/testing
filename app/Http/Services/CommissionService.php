@@ -62,7 +62,6 @@ class CommissionService extends BaseServiceController
                     $this->AbstractCommission = new CreateUserCommission();
                 $this->AbstractCommission->createCommission($data);
                 }
-
             }
           }
 

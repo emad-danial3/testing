@@ -12,7 +12,7 @@
 <br>
 <br>
 <h2 style='color:rgb(0, 148, 167)'>Dears, </h2>
-<h2 style='color:rgb(0, 148, 167)'>The products below less than 500 pieces </h2>
+<h2 style='color:rgb(0, 148, 167)'>The products below less than 500 pieces  </h2>
 
 <h2 style='color:red'>please increase stock as soon as possible  </h2>
 

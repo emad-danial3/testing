@@ -164,12 +164,12 @@ class IOracleInvoiceRepository extends BaseRepository implements OracleInvoiceRe
     }
 
 
-    
+
     public function check_filter($allowed,$sent)
     {
         $filter = [];
         foreach ($allowed as $value) {
- 
+
            if(isset($sent[$value]) && $sent[$value] != '')
            {
             $filter[$value] =$sent[$value] ;
@@ -198,8 +198,8 @@ class IOracleInvoiceRepository extends BaseRepository implements OracleInvoiceRe
         {
             $header_filter = $this->check_filter($allowed_header_filters,$inputData);
             $invoice_filter = $this->check_filter($allowed_invoice_filters,$inputData);
-        
-     
+
+
             $invoices_query = OracleInvoices::whereHas($link, function ($query) use($inputData,$header_filter) {
             if (Auth::guard('admin')->user()->id == 24) $query->where('is_printed', '0');
             if(!empty($header_filter))
@@ -209,10 +209,10 @@ class IOracleInvoiceRepository extends BaseRepository implements OracleInvoiceRe
                     $query->where($key, $val);
                 }
             }
-           
 
 
-            if (isset($inputData['from']) && $inputData['from'] != '') 
+
+            if (isset($inputData['from']) && $inputData['from'] != '')
             {
 
                 $query->where('created_at', '>', $inputData['from'] .' 00:00:00');
@@ -222,7 +222,7 @@ class IOracleInvoiceRepository extends BaseRepository implements OracleInvoiceRe
                 $query->where('created_at', '>',  Carbon::now()->subDays(3));
             }
             if (isset($inputData['to']) && $inputData['to'] != '')  $query->where('created_at', '<', $inputData['to'] .' 23:59:59');
-            
+
             });
 
            if(!empty($invoice_filter))
@@ -244,7 +244,7 @@ class IOracleInvoiceRepository extends BaseRepository implements OracleInvoiceRe
        }
 
            $invoices = $invoices_query->get();
-           $invoices_wanted =[]; 
+           $invoices_wanted =[];
             foreach($invoices as $key => $in)
             {
 
@@ -258,7 +258,7 @@ class IOracleInvoiceRepository extends BaseRepository implements OracleInvoiceRe
                     'wallet_status' =>  $in->$link->wallet_status ,
                     'payment_code' =>  $in->$link->payment_code ,
                     'total_order' =>  $in->$link->total_order ,
-                    'delivery_status' =>  $in->$link->delivery_status ? $in->$link->delivery_status : 'order status '.$in->$link->order_status  ,
+                    'delivery_status' =>  $in->$link->delivery_status ,
                 ];
                 $invoice['order_header'] = $order_header_wanted;
                 $invoice['differnce']  = round( (float)$in->$link->total_order - (float) $in->order_amount ,2);
@@ -270,15 +270,12 @@ class IOracleInvoiceRepository extends BaseRepository implements OracleInvoiceRe
           return $invoices_wanted ;
 
     }
-  
+
 
     public function getAllData($inputData)
-
     {
-
-        $inputData['start_date'] =isset($inputData['start_date']) && $inputData['start_date'] != '' ? Carbon::parse($inputData['start_date'])->startOfDay()->toDateTimeString():null;
-        $inputData['end_date'] =isset($inputData['start_date']) && $inputData['start_date'] != '' ? Carbon::parse($inputData['end_date'])->endOfDay()->toDateTimeString():null;
-       
+        $inputData['start_date'] = Carbon::parse($inputData['start_date'])->startOfDay()->toDateTimeString();
+        $inputData['end_date'] = Carbon::parse($inputData['end_date'])->endOfDay()->toDateTimeString();
 
         $invices = OracleInvoices::select('order_headers.id as Order_ID', 'oracle_invoices.web_order_number', 'oracle_invoices.oracle_invoice_number', DB::raw("(order_headers.total_order - order_headers.shipping_amount) as total_order "), 'order_headers.payment_code', 'order_headers.wallet_status', 'oracle_invoices.order_amount', 'oracle_invoices.actual_amount', 'order_headers.created_at', 'oracle_invoices.total_order_in_oracle',
             'oracle_invoices.total_order_out_oracle'

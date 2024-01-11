@@ -13,6 +13,7 @@ use App\Models\City;
 use App\Models\Country;
 use App\Models\OrderHeader;
 use App\Models\Review;
+use App\Models\WalletHistory;
 use App\Models\WelcomeProgramProduct;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -228,6 +229,12 @@ class UserCartController extends Controller
                                "used_wallet"=>$UserWallet->used_wallet+$productsAndTotal['pay_from_my_wallet']
                            ];
                              $this->UserService->updateMyUserWallet(['user_id' => $currentuser->id],$updaetWallet);
+                             WalletHistory::create([
+                                 'user_id'    => $order->user_id,
+                                 'user_commission_id'   => $order->id,
+                                 'type'   => 'substraction',
+                                 'amount'     => ($productsAndTotal['pay_from_my_wallet'])
+                             ]);
                          }
                      }
                 }
@@ -389,7 +396,7 @@ class UserCartController extends Controller
             }
         }
         if (!empty($currentuser)) {
-            $order_header = OrderHeader::select('id', 'total_order', 'shipping_amount', 'address_id')->where('id', $inputs['order_id'])->first();
+            $order_header = OrderHeader::select('id', 'total_order', 'shipping_amount', 'address_id','wallet_used_amount')->where('id', $inputs['order_id'])->first();
             $order        = DB::select('SELECT
        p.name_en as psku,p.description_en as pdescription,ol.price as olprice,ol.quantity as olquantity,
        ol.product_id as olitemcode,p.image as pimage , ol.order_id as olorder_num
@@ -408,6 +415,10 @@ FROM order_lines ol , products p
             // orders items
             // sort items
             array_push($order, (object)['olitemcode' => $order_header->id, 'psku' => 'shipping Amount', 'olprice' => $pprice, 'olquantity' => 1, 'pimage' => '', 'olorder_num' => $order_header->id]);
+            if(isset($order_header->wallet_used_amount) && $order_header->wallet_used_amount > 0){
+                array_push($order, (object)['olitemcode' => $order_header->id, 'psku' => 'wallet_used_amount', 'olprice' => -$order_header->wallet_used_amount, 'olquantity' => 1, 'pimage' => '', 'olorder_num' => $order_header->id]);
+            }
+
             foreach ($order as $orderrhh) {
                 $orderrhh->olitemcode = strval($orderrhh->olitemcode);
             }
@@ -420,6 +431,7 @@ FROM order_lines ol , products p
                     $itm .= $orderr->olitemcode . $orderr->olquantity . number_format((float)$orderr->olprice, 2, '.', '');
                 }
             }
+
             $rand              = rand(10, 100);
             $merchantCode      = 'TWp4BK7owYobL082js6IXg==';
             $merchantRefNum    = $rand . '-' . $order_header->id;

@@ -28,7 +28,7 @@
                     <li class="nav-item">
                         <a href="{{route('AcceptedVersion.index')}}" class="nav-link">
                             <i class="nav-icon fas fa-mobile"></i>
-                            <p>Accepted Version</p>
+                            <p>App Setting</p>
                         </a>
                     </li>
                     <li class="nav-item has-treeview">
@@ -255,7 +255,7 @@
                             <li class="nav-item ps-1">
                                 <a href="{{route('orderHeaders.ExportShippingSheetSheet')}}" class="nav-link">
                                     <i class="nav-icon fas fa-shopping-bag"></i>
-                                    <p>Shipping Sheet</p>
+                                    <p>Orders Use Wallet</p>
                                 </a>
                             </li>
 
@@ -305,7 +305,12 @@
                         </li>
                     @endif
 
-
+                    <li class="nav-item">
+                        <a href="{{route('wallets')}}" class="nav-link">
+                            <i class="nav-icon fas fa-people-arrows"></i>
+                            <p>Users Wallts</p>
+                        </a>
+                    </li>
                     <li class="nav-item has-treeview">
                         <a href="#" class="nav-link">
                             <i class="nav-icon fas fa-angry"></i>
@@ -339,6 +344,7 @@
                                     <p>Finance Commission Order Report</p>
                                 </a>
                             </li>
+
                         </ul>
                     </li>
                     <li class="nav-item">

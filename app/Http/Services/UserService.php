@@ -323,7 +323,7 @@ class UserService extends BaseServiceController
         if (isset($updatedData['front_id_image'])) {
             $updatedData['front_id_image'] = $this->MediaController->UploadImage($updatedData['front_id_image'], 'images');
         }
-         if (isset($updatedData['password']) && !empty($updatedData['password'])&& $updatedData['password'] !=''&&$updatedData['password']>0) {
+        if (isset($updatedData['password']) && !empty($updatedData['password'])&& $updatedData['password'] !=''&&$updatedData['password']>0) {
             $updatedData['initial_password'] = $updatedData['password'];
             $updatedData['password']         = Hash::make($updatedData['password']);
         }else{
@@ -332,7 +332,6 @@ class UserService extends BaseServiceController
         if (isset($updatedData['back_id_image'])) {
             $updatedData['back_id_image'] = $this->MediaController->UploadImage($updatedData['back_id_image'], 'images');
         }
-       
         return $this->UserRepository->updateUser($id, $updatedData);
 
     }

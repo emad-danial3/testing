@@ -181,9 +181,9 @@
                 $i = 1;
                 ?>
 
-                <!--@if((isset($invoiceNumber->check_valid)&&$invoiceNumber->check_valid == 'notvalid' ) || (  $invoiceNumber->linescount != $invoiceNumber->items_count))-->
-                <!--    <h1 style="color: red;font-size: 36px"> بها خطا لا تسلم الي العميل</h1>-->
-                <!--@endif-->
+                @if((isset($invoiceNumber->check_valid)&&$invoiceNumber->check_valid == 'notvalid' ) || (  $invoiceNumber->linescount != $invoiceNumber->items_count))
+                  <h1 style="color: red;font-size: 36px"> بها خطا لا تسلم الي العميل</h1>
+                @endif
 <p> رقم الطلب :  {{$invoiceNumber->oracle_invoice_number}}</p>
                 @foreach($invoicesLines as $orderlines)
                     @if($invoiceNumber->oracle_num == $orderlines->oracle_num)
@@ -230,13 +230,16 @@
                     <tr>
                         <th style="text-align: center;">الكمية الكلية </th>
                         <td style="text-align: center;">{{$invoicesTotalQuantity}} </td>
-
-
                     </tr>
-
+                   @if($orderHeader->wallet_used_amount > 0)
+                    <tr>
+                        <th style="text-align: center;">إستخدام من المحفظة </th>
+                        <td style="text-align: center;">{{$orderHeader->wallet_used_amount}} </td>
+                    </tr>
+                   @endif
                     <tr>
                         <th style="text-align: center;">اجمالى الكمية</th>
-                        <td style="text-align: center;">{{$orderHeader->total_order + $orderHeader->shipping_account}} </td>
+                        <td style="text-align: center;">{{ (($orderHeader->total_order + $orderHeader->shipping_account)-$orderHeader->wallet_used_amount)  }} </td>
 
 
                     </tr>
