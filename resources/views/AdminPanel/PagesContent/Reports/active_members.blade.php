@@ -1,0 +1,165 @@
+@extends('AdminPanel.layouts.main')
+@section('content')
+    <meta name="csrf-token" content="{{ csrf_token() }}"/>
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{{route('adminDashboard')}}">Home</a></li>
+                        <li class="breadcrumb-item active"><a href="{{route('generalReports.active_members')}}">Report Active
+                                Users</a></li>
+                    </ol>
+                </div>
+                <div class="col-sm-6">
+
+                </div>
+            </div>
+        </div><!-- /.container-fluid -->
+    </section>
+    @include('AdminPanel.layouts.messages')
+
+    <div class="card">
+        <div class="card-body pb-0">
+            <h5 class="row col-md-12 text-danger">Total Users Count : {{$productsReport->total()}}</h5>
+        </div>
+        <div class="card-body pb-0">
+            <form method="get" action="{{route('generalReports.active_members')}}">
+                <div class="row">
+                    <div class="form-group  mb-2 col-md-4">
+                        <input type="text" id="date_from" name="date_from" onfocus="(this.type='date')" onblur="if(!this.value)this.type='text'" @if(isset($date_from) && $date_from !='' ) value="{{$date_from}}" @endif class="form-control" placeholder="Date From" required>
+                    </div>
+                    <div class="form-group  mb-2 col-md-4">
+                        <input type="text" id="date_to" name="date_to" onfocus="(this.type='date')" onblur="if(!this.value)this.type='text'" @if(isset($date_to) && $date_to !='' ) value="{{$date_to}}" @endif class="form-control" placeholder="Date To" required>
+                    </div>
+                    <div class="form-group col-4">
+                        <button type="submit" class="btn btn-success form-control"><i class="fa fa-search"></i> Search</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- /.card-header -->
+        <div class="card-body" style="overflow-x:scroll">
+            @if(count($productsReport) > 0)
+                <table id="orderHeadersTable" style="width: 100%" class="table table-bordered table-striped">
+                    <thead>
+                    <tr>
+                        {{--                        <th> <input type="checkbox" id="select-all"></th>--}}
+                        <th>User ID</th>
+                        <th>User Name</th>
+                        <th>User Phone</th>
+                        <th>User Email</th>
+                        <th>Total Sales</th>
+                        <th>Date</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach($productsReport as $row)
+                        <tr>
+                            {{--                            <td><input type="checkbox" name="checkbox[]" value="{{$row->id}}"/></td>--}}
+                            <td>{{$row->id}}</td>
+                            <td>{{$row->full_name}}</td>
+                            <td>{{$row->phone}}</td>
+                            <td>{{$row->email}}</td>
+                            <td>{{ number_format( floatval($row->total_sales), 2, '.', ',')}}</td>
+                            <td>{{$row->created_at}}</td>
+                        </tr>
+                    @endforeach
+                    </tbody>
+
+                </table>
+                <div class="pagination justify-content-center mt-2">
+
+                    @if (isset($productsReport) && $productsReport->lastPage() > 1)
+                        <ul class="pagination align-items-center">
+                        @php
+                            $interval = isset($interval) ? abs(intval($interval)) : 3 ;
+                            $from = $productsReport->currentPage() - $interval;
+                            if($from < 1){
+                              $from = 1;
+                            }
+
+                            $to = $productsReport->currentPage() + $interval;
+                            if($to > $productsReport->lastPage()){
+                              $to = $productsReport->lastPage();
+                            }
+                        @endphp
+                        <!-- first/previous -->
+                            @if($productsReport->currentPage() > 1)
+                                <li class="page-item">
+                                    <a href="{{ $productsReport->url(1)."&date_from=".app('request')->input('date_from')."&date_to=".app('request')->input('date_to')}}" aria-label="First" class="page-link">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a href="{{ $productsReport->url($productsReport->currentPage() - 1)."&date_from=".app('request')->input('date_from')."&date_to=".app('request')->input('date_to') }}" aria-label="Previous" class="page-link">
+                                        <span aria-hidden="true">&lsaquo;</span>
+                                    </a>
+                                </li>
+                            @endif
+                        <!-- links -->
+                            @for($i = $from; $i <= $to; $i++)
+                                @php
+                                    $isCurrentPage = $productsReport->currentPage() == $i;
+                                @endphp
+                                <li class="page-item {{ $isCurrentPage ? 'active' : '' }}" style="padding: 5px">
+                                    <a class="page-link" href="{{ !$isCurrentPage ? $productsReport->url($i)."&date_from=".app('request')->input('date_from')."&date_to=".app('request')->input('date_to') : '' }}">
+                                        {{ $i }}
+                                    </a>
+                                </li>
+                            @endfor
+                        <!-- next/last -->
+                            @if($productsReport->currentPage() < $productsReport->lastPage())
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ $productsReport->url($productsReport->currentPage() + 1)."&date_from=".app('request')->input('date_from')."&date_to=".app('request')->input('date_to') }}" aria-label="Next">
+                                        <span aria-hidden="true">&rsaquo;</span>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ $productsReport->url($productsReport->lastpage())."&date_from=".app('request')->input('date_from')."&date_to=".app('request')->input('date_to') }}" aria-label="Last">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                            @endif
+                        </ul>
+                    @endif
+                </div>
+
+            @else
+                <h1 class="text-center">NO DATA</h1>
+            @endif
+        </div>
+        <!-- /.card-body -->
+    </div>
+
+
+    @push('scripts')
+        <script type="text/javascript">
+            var base_url = window.location.origin;
+
+            function urlParamfun(name) {
+                var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+                if (results == null) {
+                    return null;
+                }
+                else {
+                    return results[1] || 0;
+                }
+            }
+
+            $('#select-all').click(function () {
+                var checked = this.checked;
+                $('input[type="checkbox"]').each(function () {
+                    this.checked = checked;
+                });
+            })
+
+            $(document).ready(function () {
+                var type = urlParamfun('type');
+                console.log(type);
+            });
+
+        </script>
+    @endpush
+@endsection
