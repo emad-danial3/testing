@@ -222,19 +222,20 @@
                                         </lord-icon>
                                     </div>
                                     <div class="checkout-box  bg-white">
- {{--                                        <div class="checkout-title bg-info pt-2 pb-2">--}}
-{{--                                            <h4 class="bg-info"> &nbsp;--}}
+                                        <div class="checkout-title  pt-2 pb-2">
+                                            <h4 class=""> &nbsp;
                                                 <input
                                                     class="form-check-input mt-0" type="hidden"
                                                     name="useMyWallet" id="useMyWallet" value="0">
+
 {{--                                                <label  for="useMyWallet" class="bg-info">--}}
 {{--                                                    <input--}}
 {{--                                                        class="form-check-input mt-0" type="checkbox"--}}
 {{--                                                        name="useMyWallet" id="useMyWallet" >--}}
 {{--                                                    {{trans('website.useMyWallet',[],session()->get('locale'))}}--}}
 {{--                                                </label>--}}
-{{--                                                </h4>--}}
-{{--                                        </div>--}}
+                                           </h4>
+                                        </div>
                                         <div class="checkout-title">
                                             <h4><i data-feather="credit-card"></i>  {{trans('website.Payment Option',[],session()->get('locale'))}}</h4>
                                         </div>
@@ -242,32 +243,32 @@
                                         <div class="checkout-detail">
                                             <div class="accordion accordion-flush custom-accordion"
                                                  id="accordionFlushExample">
-                                                <!--<div class="accordion-item">-->
-                                                <!--    <div class="accordion-header" id="flush-headingFour">-->
-                                                <!--        <div class="accordion-button collapsed"-->
-                                                <!--             data-bs-toggle="collapse"-->
-                                                <!--             data-bs-target="#flush-collapseFour">-->
-                                                <!--            <div class="custom-form-check form-check mb-0">-->
-                                                <!--                <label class="form-check-label" for="only_fawry"><input-->
-                                                <!--                        class="form-check-input mt-0" type="radio"-->
-                                                <!--                        name="flexRadioDefault" id="only_fawry" value="only_fawry">-->
-                                                <!--                    {{trans('website.Pay OnLine',[],session()->get('locale'))}}-->
-                                                <!--                </label>-->
-                                                <!--            </div>-->
-                                                <!--        </div>-->
-                                                <!--    </div>-->
-                                                <!--    <div id="flush-collapseFour"-->
-                                                <!--         class="accordion-collapse collapse"-->
-                                                <!--         data-bs-parent="#accordionFlushExample">-->
-                                                <!--        <div class="accordion-body">-->
-                                                <!--            <p class="cod-review"> {{trans('website.Pay OnLine By Credit Card',[],session()->get('locale'))}}</p>-->
-                                                <!--            <br>-->
-                                                <!--            <div class="payment">-->
-                                                <!--                <img src="../assets/images/payment/1.png" class="blur-up lazyload" alt="">-->
-                                                <!--            </div>-->
-                                                <!--        </div>-->
-                                                <!--    </div>-->
-                                                <!--</div>-->
+{{--                                               <div class="accordion-item">--}}
+{{--                                                   <div class="accordion-header" id="flush-headingFour">--}}
+{{--                                                      <div class="accordion-button collapsed"--}}
+{{--                                                         data-bs-toggle="collapse"--}}
+{{--                                                        data-bs-target="#flush-collapseFour">--}}
+{{--                                                          <div class="custom-form-check form-check mb-0">--}}
+{{--                                                             <label class="form-check-label" for="only_fawry"><input--}}
+{{--                                                                  class="form-check-input mt-0" type="radio"--}}
+{{--                                                                   name="flexRadioDefault" id="only_fawry" value="only_fawry">--}}
+{{--                                                              {{trans('website.Pay OnLine',[],session()->get('locale'))}}--}}
+{{--                                                             </label>--}}
+{{--                                                         </div>--}}
+{{--                                                    </div>--}}
+{{--                                                  </div>--}}
+{{--                                                 <div id="flush-collapseFour"--}}
+{{--                                                    class="accordion-collapse collapse"--}}
+{{--                                                       data-bs-parent="#accordionFlushExample">--}}
+{{--                                                     <div class="accordion-body">--}}
+{{--                                                       <p class="cod-review"> {{trans('website.Pay OnLine By Credit Card',[],session()->get('locale'))}}</p>--}}
+{{--                                                          <br>--}}
+{{--                                                            <div class="payment">--}}
+{{--                                                             <img src="../assets/images/payment/1.png" class="blur-up lazyload" alt="">--}}
+{{--                                                          </div>--}}
+{{--                                                     </div>--}}
+{{--                                                   </div>--}}
+{{--                                               </div>--}}
 
                                                 <div class="accordion-item">
                                                     <div class="accordion-header" id="flush-headingFour">

@@ -231,7 +231,7 @@ class CartService extends BaseServiceController
                 $totalProductsAfterDiscountCosmetics    = ((float)$totalProductsCosmeticsAndFood - ((float)$totalProductsCosmeticsAndFood * $discountCosmeticFood / 100));
                 $totalProductsAfterDiscountNotCosmetics = ((float)$totalProductsNotCosmeticsOrFood - ((float)$totalProductsNotCosmeticsOrFood * $discountNotCosmetic / 100));
             }
-             else{
+            else{
                 $totalProductsAfterDiscountCosmetics    = $totalProductsCosmeticsAndFood;
                 $totalProductsAfterDiscountNotCosmetics = $totalProductsNotCosmeticsOrFood;
             }

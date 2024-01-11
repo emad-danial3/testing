@@ -59,14 +59,14 @@ class Myllerz
        return $res->Value ;
 
     }
-    public function get_order_stations($order_id,$barcode)
+    public function get_order_stations($order_id)
     {
        
         $accessToken = $this->getAccessToken() ;
         $token = 'Bearer ' .$accessToken ;
         $client   = new \GuzzleHttp\Client();
         $jsonData = [
-        (object)['ReferenceNumber' => $order_id,'barcode' =>$barcode]
+        (object)['ReferenceNumber' => $order_id]
         ];
         $response = $client->request('POST', $this->link .'api/Packages/TrackPackages',
         [   'verify'      => false,

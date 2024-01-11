@@ -318,7 +318,7 @@ class PaymentService extends BaseServiceController
 
                 $newValue[] = $orderLine;
             }
-
+//            dd($newValue);
             try {
 //                Log::info("send order to oracle event");
                 $client   = new \GuzzleHttp\Client();
@@ -357,7 +357,7 @@ class PaymentService extends BaseServiceController
             $this->sendOrderToOracle($orderId);
         }
     }
-     public function sendOrderToOracleChashThatNotSending()
+    public function sendOrderToOracleChashThatNotSending()
     {
         $ordersNotSend = OrderHeader::where('user_id', '!=', '1')->where('user_id', '!=', '2')->where('platform', '!=', 'onLine')->where('wallet_status', 'cash')->where('send_t_o', '0')->where('order_status', 'pending')->where('created_at', '>', Carbon::now()->subDays(30))->orderBy('id', 'desc')->limit(20)->pluck('id')->toArray();
         foreach ($ordersNotSend as $orderId) {
@@ -365,7 +365,6 @@ class PaymentService extends BaseServiceController
         }
     }
 
- 
     public function checkGiftProductsAvailability()
     {
 
@@ -413,8 +412,6 @@ class PaymentService extends BaseServiceController
         }
         return '';
     }
-
-
 
     public function sendOrderToOracleNotSending($orderId)
     {

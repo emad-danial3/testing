@@ -9,6 +9,7 @@ use App\Models\OrderHeader;
 use App\Models\OrderLine;
 
 use App\Libraries\ApiValidator;
+use App\Models\WalletHistory;
 use App\ValidationClasses\ProductsValidation;
 use App\ValidationClasses\UserValidation;
 use Carbon\Carbon;
@@ -159,7 +160,7 @@ class UserCartController extends HomeController
 
             $ttottalOrder=(float)$productsAndTotal['totalProductsAfterDiscount'] + $productsAndTotal['shipping'];
 
-             $productsAndTotal['use_my_wallet']=isset($inputs['use_my_wallet'])&&$inputs['use_my_wallet']==1?true:false;
+             $productsAndTotal['use_my_wallet']=isset($inputs['use_my_wallet'])&&$inputs['use_my_wallet']==1?true:false;;
              $productsAndTotal['pay_from_my_wallet']=0;
               if(isset($inputs['use_my_wallet'])&&$inputs['use_my_wallet'] == true ){
                  $UserWallet = $this->UserService->getMyUserWallet($request->user_id);
@@ -211,6 +212,12 @@ class UserCartController extends HomeController
                            "used_wallet"=>$UserWallet->used_wallet+$productsAndTotal['pay_from_my_wallet']
                        ];
                          $this->UserService->updateMyUserWallet(['user_id' => $request->user_id],$updaetWallet);
+                         WalletHistory::create([
+                             'user_id'    => $order->user_id,
+                             'user_commission_id'   => $order->id,
+                             'type'   => 'substraction',
+                             'amount'     => ($productsAndTotal['pay_from_my_wallet'])
+                         ]);
                      }
                  }
             }

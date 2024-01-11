@@ -16,6 +16,7 @@ use App\Libraries\ApiValidator;
 use App\Mail\ContactUsEmail;
 use App\Models\AccountLevel;
 use App\Models\ActivationCode;
+use App\Models\Setting;
 use App\Models\User;
 use App\Models\UserAddress;
 use App\Models\UserMembership;
@@ -699,8 +700,9 @@ class UserController extends HomeController
             "version"  => $request->input('version'),
             "platform" => $request->input('platform'),
         ];
+        $setting=Setting::find(1);
         $version = $this->AcceptedVersionService->checkVersion($data['platform'], $data['version']);
-        return $this->API_RESPONSE->data(["is_accepted" => (isset($version) && !empty($version)) ?1:0,"upload_apple_version" => (isset($version) && !empty($version)&&$version->upload_apple_version==1)?true:false], 'Version', 200);
+        return $this->API_RESPONSE->data(["is_accepted" => (isset($version) && !empty($version)) ?1:0,"upload_apple_version" => (isset($version) && !empty($version)&&$version->upload_apple_version==1)?true:false,"show_wallet" => (isset($setting) && !empty($setting)&&$setting->show_wallet=='1')?true:false,"show_fawry_payemnt" => (isset($setting) && !empty($setting)&&$setting->show_fawry_payemnt=='1')?true:false,"show_welcome_programme" => (isset($setting) && !empty($setting)&&$setting->show_welcome_programme=='1')?true:false], 'Version', 200);
     }
 
     public function changePassword(Request $request)

@@ -7,7 +7,7 @@
                 <div class="col-sm-6">
                     <ol class="breadcrumb">
                         <li class="breadcrumb-item"><a href="{{route('adminDashboard')}}">Home</a></li>
-                        <li class="breadcrumb-item active"><a href="{{route('accountTypes.index')}}">Accepted Version</a></li>
+                        <li class="breadcrumb-item active"><a href="{{route('accountTypes.index')}}">Accepted Version & Setting </a></li>
                     </ol>
                 </div>
                 <div class="col-sm-6">
@@ -60,6 +60,37 @@
 {{--                @links()--}}
                 </div>
 
+            @else
+                <h1 class="text-center">NO DATA</h1>
+            @endif
+        </div>
+        <!-- /.card-body -->
+    </div>
+    <div class="card">
+
+        <!-- /.card-header -->
+        <div class="card-body">
+            @if(count($setting) > 0)
+                <table id="areasTable"  class="table table-bordered table-striped table-responsive">
+                    <thead>
+                    <tr>
+                        <th>show wallet in App</th>
+                        <th>show welcome programme in App</th>
+                        <th>show fawry payemnt in App</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+
+                        <tr>
+                            <td>{{$setting[0]->show_wallet}}</td>
+                            <td>{{$setting[0]->show_welcome_programme}}</td>
+                            <td>{{$setting[0]->show_fawry_payemnt}}</td>
+                            <a class="btn btn-dark" href="{{route('AcceptedVersion.edit',10000)}}">Edit</a>
+                        </tr>
+
+                    </tbody>
+
+                </table>
             @else
                 <h1 class="text-center">NO DATA</h1>
             @endif

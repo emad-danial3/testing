@@ -58,11 +58,11 @@ class HomeController extends Controller
      *
      * @return void
      */
-      protected $UserService;
+    protected $UserService;
     public function __construct(UserService $UserService)
     {
         $this->UserService                = $UserService;
-       
+
         if (!session()->get('locale')) {
             session()->put('locale', 'en');
             session()->save();
@@ -85,112 +85,112 @@ class HomeController extends Controller
     }
 
 
- public function returnFromMylers(Request  $request)
+    public function returnFromMylers(Request  $request)
     {
-       // log
-      //$token = $request->apiKey;
-     // Log::info("returnFromMylers");
-     // Log::info($request);
-      $response = $request->all();
-  
-      $order_number = $response['events'][0]['ReferenceNumber'] ;
-      $Barcode = $response['events'][0]['trackingNumber'] ;
-      
-      $status = $response['events'][0]['courierStatus'][0]['code'] ;
-      $status_time = Carbon::parse($response['events'][0]['changeStatusDate'] )->format('Y-m-d H:i:s')  ;
-      $order = OrderHeader::find($order_number) ;
-      if($order)
-      {
-        $station = [
-        'order_id'=> $order->id,
-        'status'=> $status,
-        'barcode'=> $Barcode,
-        'status_time'=> $status_time,
-        ] ;
-        OrderDeliveryStation::create($station);
-        $order->delivery_status()->delete();
-        
-        $order_status = [
-        'order_id' => $order->id,
-        'status' => $status ,
-        'barcode' => $Barcode ] ;
-        OrderDeliveryStatus::create($order_status);
-        //'shipped','In Transit','At Warehouse','Out For Delivery','Delivered','Un-Delivered','Cancelled'
-        
-        if($status == 'Delivered, Thank you :-)')
+        // log
+        //$token = $request->apiKey;
+        Log::info("returnFromMylers");
+        Log::info($request);
+        $response = $request->all();
+
+        $order_number = $response['events'][0]['ReferenceNumber'] ;
+        $Barcode = $response['events'][0]['trackingNumber'] ;
+
+        $status = $response['events'][0]['courierStatus'][0]['code'] ;
+        $status_time = Carbon::parse($response['events'][0]['changeStatusDate'] )->format('Y-m-d H:i:s')  ;
+        $order = OrderHeader::find($order_number) ;
+        if($order)
+        {
+            $station = [
+                'order_id'=> $order->id,
+                'status'=> $status,
+                'barcode'=> $Barcode,
+                'status_time'=> $status_time,
+            ] ;
+            OrderDeliveryStation::create($station);
+            $order->delivery_status()->delete();
+
+            $order_status = [
+                'order_id' => $order->id,
+                'status' => $status ,
+                'barcode' => $Barcode ] ;
+            OrderDeliveryStatus::create($order_status);
+            //'shipped','In Transit','At Warehouse','Out For Delivery','Delivered','Un-Delivered','Cancelled'
+
+            if($status == 'Delivered, Thank you :-)')
             {
-       
-            $order->delivery_status ='Delivered' ;
-            $order->order_status ='Delivered' ;
-            $order->payment_status ='PAID' ;
-            $order->delivery_date =$status_time ;
-        }
-        if($status == 'Out for Delivery'
-        || $status == 'Re-attempt Delivery'
-        || $status == 'Rescheduled'
-        )
-        {
-            $order->delivery_status ='Out For Delivery' ;
-            $order->order_status ='Out For Delivery' ;
-        }
-        if($status == 'In-Transit')
-        {
-            $order->delivery_status ='In-Transit' ;
-            $order->order_status ='In Transit' ;
-        }
-        if($status == 'Uploaded')
-        {
-            $order->delivery_status ='Uploaded' ;
-            $order->order_status ='shipped' ;
-        }
-        if($status == 'Not Picked Yet') $order->delivery_status ='Not Picked Yet' ;
-        if($status == 'Picked')
-        {
-            $order->delivery_status ='Picked' ;
-            $order->order_status ='shipped' ;
-        }
-        if( $status == 'Rejected - reason to be mentioned'
-        || $status == 'Returned to shipper confirmed'
-        || $status == 'Returned to shipper'
-        )
-        {
-            $order->canceled_reason ='Rejected by Customer ( Myllerz )' ;
-            $order->delivery_status ='Rejected by Customer' ;
-            $order->order_status ='Cancelled' ;
-        if($order->wallet_used_amount > 0){
-            $UserWallet = $this->UserService->getMyUserWallet($order->user_id);
-            if(!empty($UserWallet)){
-                $updaetWallet=[
-                "current_wallet"=>$UserWallet->current_wallet+$order->wallet_used_amount,
-                "used_wallet"=>$UserWallet->used_wallet-$order->wallet_used_amount
-                ];
-                $this->UserService->updateMyUserWallet(['user_id' => $order->user_id],$updaetWallet);
-                WalletHistory::create([
-                'user_id'    => $order->user_id,
-                'user_commission_id'   => $order->id,
-                'type'   => 'returnfromcancel',
-                'amount'     => ($order->wallet_used_amount)
-                ]);
+
+                $order->delivery_status ='Delivered' ;
+                $order->order_status ='Delivered' ;
+                $order->payment_status ='PAID' ;
+                $order->delivery_date =$status_time ;
             }
+            if($status == 'Out for Delivery'
+                || $status == 'Re-attempt Delivery'
+                || $status == 'Rescheduled'
+            )
+            {
+                $order->delivery_status ='Out For Delivery' ;
+                $order->order_status ='Out For Delivery' ;
+            }
+            if($status == 'In-Transit')
+            {
+                $order->delivery_status ='In-Transit' ;
+                $order->order_status ='In Transit' ;
+            }
+            if($status == 'Uploaded')
+            {
+                $order->delivery_status ='Uploaded' ;
+                $order->order_status ='shipped' ;
+            }
+            if($status == 'Not Picked Yet') $order->delivery_status ='Not Picked Yet' ;
+            if($status == 'Picked')
+            {
+                $order->delivery_status ='Picked' ;
+                $order->order_status ='shipped' ;
+            }
+            if( $status == 'Rejected - reason to be mentioned'
+                || $status == 'Returned to shipper confirmed'
+                || $status == 'Returned to shipper'
+            )
+            {
+                $order->canceled_reason ='Rejected by Customer ( Myllerz )' ;
+                $order->delivery_status ='Rejected by Customer' ;
+                $order->order_status ='Cancelled' ;
+                if($order->wallet_used_amount > 0){
+                    $UserWallet = $this->UserService->getMyUserWallet($order->user_id);
+                    if(!empty($UserWallet)){
+                        $updaetWallet=[
+                            "current_wallet"=>$UserWallet->current_wallet+$order->wallet_used_amount,
+                            "used_wallet"=>$UserWallet->used_wallet-$order->wallet_used_amount
+                        ];
+                        $this->UserService->updateMyUserWallet(['user_id' => $order->user_id],$updaetWallet);
+                        WalletHistory::create([
+                            'user_id'    => $order->user_id,
+                            'user_commission_id'   => $order->id,
+                            'type'   => 'returnfromcancel',
+                            'amount'     => ($order->wallet_used_amount)
+                        ]);
+                    }
+                }
+            }
+            if($status == 'Damaged' || $status == 'Lost')
+            {
+                $order->delivery_status ='Cancelled by Myllerz' ;
+                $order->order_status ='Cancelled' ;
+            }
+
+            $order->save();
+
+            echo json_encode(array('success'=>true));
+
+
         }
-        }
-        if($status == 'Damaged' || $status == 'Lost')
-        {
-            $order->delivery_status ='Cancelled by Myllerz' ;
-            $order->order_status ='Cancelled' ;
-        }
-        
-        $order->save();
-      
-        echo json_encode(array('success'=>true));
-        
-      
-      }
-     
-      
-      
+
+
+
     }
-    
+
 
     public function paySuccess(Request $request)
     {
@@ -224,7 +224,7 @@ class HomeController extends Controller
 
             User::where('id', $id)
                 ->update(['password'         => Hash::make($password),
-                          'initial_password' => $password]);
+                    'initial_password' => $password]);
             return redirect('/');
         }
 
@@ -760,8 +760,8 @@ class HomeController extends Controller
         $fullname   = $firstname . ' ' . ' ' . $middlename . ' ' . $lastname;
 
         $res                     = $request->only(['name', 'email', 'gender', 'birthday', 'address', 'city',
-                                                   'area', 'building_number', 'floor_number', 'apartment_number', 'landmark',
-                                                   'account_type', 'nationality_id', 'user_id', 'notionality']);
+            'area', 'building_number', 'floor_number', 'apartment_number', 'landmark',
+            'account_type', 'nationality_id', 'user_id', 'notionality']);
         $res['phone']            = $request['mob1'];
         $res['phone2']           = $request['mob2'];
         $res['password']         = Hash::make($request->input('password'));

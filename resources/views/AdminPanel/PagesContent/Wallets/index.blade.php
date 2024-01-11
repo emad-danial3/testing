@@ -16,7 +16,20 @@
     </section>
     @include('AdminPanel.layouts.messages')
 
+    <div class="card">
+    <div class="card-body">
+        <div class="card-header" style="float: right">
+            <h3 class="card-title">
 
+                <form method="post" action="{{route('wallets.importWalletsSheet')}}" enctype="multipart/form-data">
+                    @csrf
+                    <input type="file"  name="file" required>
+                    <button type="submit" class="btn btn-danger">Import Wallet Sheet</button>
+                </form>
+            </h3>
+        </div>
+    </div>
+    </div>
 
     <div class="card">
         <div class="card-body">
@@ -48,14 +61,12 @@
                     <tr>
                         <th>ID</th>
                         <th>User ID</th>
-                        <th>Total Orders Amount</th>
-                        <th>Total Members Count</th>
-                        <th>Withdrawal Order Count</th>
-                        <th>Withdrawal Member Count</th>
                         <th>Total Wallet</th>
                         <th>Current Wallet</th>
+                        <th>Used Wallet</th>
                         <th>Created At</th>
-                        <th>Updated At</th>
+                        <th>Last Updated At</th>
+                        <th>Added By </th>
                     </tr>
                     </thead>
                     <tbody>
@@ -64,33 +75,16 @@
                         <tr>
                             <td >{{$row->id}}</td>
                             <td >{{$row->user_id}}</td>
-                            <td >{{$row->total_orders_amount}}</td>
-                            <td >{{$row->total_members_count}}</td>
-                            <td >{{$row->withdrawal_order_count}}</td>
-                            <td >{{$row->withdrawal_member_count}}</td>
                             <td >{{$row->total_wallet}}</td>
                             <td >{{$row->current_wallet}}</td>
+                            <td >{{$row->used_wallet}}</td>
                             <td >{{$row->created_at}}</td>
                             <td >{{$row->updated_at}}</td>
+                            <td >{{$row->added_by}}</td>
 
                         </tr>
                     @endforeach
                     </tbody>
-                    <tfoot>
-                    <tr>
-                        <th>ID</th>
-                        <th>User ID</th>
-                        <th>Total Orders Amount</th>
-                        <th>Total Members Count</th>
-                        <th>Withdrawal Order Count</th>
-                        <th>Withdrawal Member Count</th>
-                        <th>Total Wallet</th>
-                        <th>Current Wallet</th>
-                        <th>Created At</th>
-                        <th>Updated At</th>
-
-                    </tr>
-                    </tfoot>
                 </table>
                 <div class="pagination">
 

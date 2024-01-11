@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\HomeController;
 use App\Http\Controllers\Admin\UsersController;
+use App\Http\Controllers\Admin\AcceptedVersionController;
 use App\Http\Controllers\Admin\AreasController;
 use App\Http\Controllers\Admin\CountryController;
 use App\Http\Controllers\Admin\CityController;
@@ -120,6 +121,7 @@ Route::get('ExportOracleProductsSheet', [OracleProductsController::class, 'Expor
     Route::post('monthcommissions/importCommissionsSheet', [MonthlyCommissionController::class, 'importCommissionsSheet'])->name('monthcommissions.importCommissionsSheet')->middleware(['roleChecker:super_admin,user,customer_support']);
     Route::get('financecommissionreport', [MonthlyCommissionController::class, 'financecommissionreport'])->name('monthcommissions.financecommissionreport')->middleware(['roleChecker:super_admin,user,customer_support']);
     Route::get('finandetailscecommission', [MonthlyCommissionController::class, 'finandetailscecommission'])->name('monthcommissions.finandetailscecommission')->middleware(['roleChecker:super_admin,user,customer_support']);
+    Route::get('usershavewallet', [MonthlyCommissionController::class, 'usershavewallet'])->name('monthcommissions.usershavewallet')->middleware(['roleChecker:super_admin,user,customer_support']);
     Route::get('financecommissionview/{id}', [MonthlyCommissionController::class, 'financecommissionview'])->name('monthcommissions.financecommissionview')->middleware(['roleChecker:super_admin,user,customer_support']);
 
     Route::get('levels', 'LevelsController@index')->name('levels')->middleware(['roleChecker:super_admin,null,null']);
@@ -130,6 +132,7 @@ Route::get('ExportOracleProductsSheet', [OracleProductsController::class, 'Expor
     Route::resource('AcceptedVersion', 'AcceptedVersionController')->middleware(['roleChecker:super_admin,null,null']);
     Route::get('orderHeaders/Export/ExportShippingSheetSheet', [OrderHeaderController::class, 'ExportShippingSheetSheet'])->name('orderHeaders.ExportShippingSheetSheet')->middleware(['roleChecker:super_admin,null,customer_support']);
     Route::post('orderHeaders/Export/ExportShippingSheetSheet', [OrderHeaderController::class, 'HandelExportShippingSheetSheet'])->name('orderHeaders.HandelExportShippingSheetSheet')->middleware(['roleChecker:super_admin,null,customer_support']);
+    Route::post('updateSetting', [AcceptedVersionController::class, 'updateSetting'])->name('updateSetting')->middleware(['roleChecker:super_admin,null,customer_support']);
 
     Route::get('orderHeaders/change/order', [OrderHeaderController::class, 'ChangeStatusForOrder'])->name('orderHeaders.ChangeStatusForOrder')->middleware(['roleChecker:super_admin,null,null']);
     Route::post('orderHeaders/change/order', [OrderHeaderController::class, 'HandelChangeStatusForOrder'])->name('orderHeaders.HandelChangeStatusForOrder')->middleware(['roleChecker:super_admin,null,null']);
@@ -180,6 +183,7 @@ Route::get('ExportOracleProductsSheet', [OracleProductsController::class, 'Expor
     Route::get('generalReports/product_quantites_sold/{from}/{to}', [ReportsController::class, 'product_quantites_sold'])->name('generalReports.product_quantites_sold_data')->middleware(['roleChecker:super_admin,null,null,null,product_quantites_sold_view']);
 
     Route::get('wallets/ExportSheet', [WalletController::class, 'ExportSheet'])->name('wallets.ExportSheet')->middleware(['roleChecker:super_admin,user,customer_support']);
+    Route::post('wallets/ImportUserSheet', [WalletController::class, 'importWalletsSheet'])->name('wallets.importWalletsSheet')->middleware(['roleChecker:super_admin,user,customer_support']);
     Route::get('levels/ExportSheet', [LevelsController::class, 'ExportSheet'])->name('levels.ExportSheet')->middleware(['roleChecker:super_admin,user,customer_support']);
 
     Route::get('update_delivery_status', [OrderHeaderController::class, 'update_delivery_status'])->name('update_delivery_status')->middleware(['roleChecker:super_admin,user,customer_support']);

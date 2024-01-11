@@ -324,15 +324,15 @@
 
                                 </button>
                             </li>
-                            <!--<li class="nav-item" role="presentation">-->
-                            <!--    <button class="nav-link" id="pills-wallet-tab" data-bs-toggle="pill"-->
-                            <!--            data-bs-target="#pills-wallet" type="button" role="tab"-->
-                            <!--            aria-controls="pills-wallet" aria-selected="false">-->
-                            <!--        <i data-feather="credit-card"></i>-->
-                            <!--        {{trans('website.wallet',[],session()->get('locale'))}}-->
+{{--                            <li class="nav-item" role="presentation">--}}
+{{--                                <button class="nav-link" id="pills-wallet-tab" data-bs-toggle="pill"--}}
+{{--                                        data-bs-target="#pills-wallet" type="button" role="tab"--}}
+{{--                                        aria-controls="pills-wallet" aria-selected="false">--}}
+{{--                                    <i data-feather="credit-card"></i>--}}
+{{--                                    {{trans('website.wallet',[],session()->get('locale'))}}--}}
 
-                            <!--    </button>-->
-                            <!--</li>-->
+{{--                                </button>--}}
+{{--                            </li>--}}
 
                             {{--                            <li class="nav-item" role="presentation">--}}
                             {{--                                <button class="nav-link" id="pills-security-tab" data-bs-toggle="pill"--}}

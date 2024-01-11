@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AcceptedVersion\StoreRequest;
 use App\Http\Services\AcceptedVersionService;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 
 class AcceptedVersionController extends Controller
@@ -23,7 +24,8 @@ class AcceptedVersionController extends Controller
     {
         //
         $types=$this->acceptedVersion->AcceptedVersionRepository->getAll();
-        return view('AdminPanel.PagesContent.AcceptedVersion.index')->with('types',$types);
+        $setting=Setting::all();
+        return view('AdminPanel.PagesContent.AcceptedVersion.index')->with('types',$types)->with('setting',$setting);
     }
 
     /**
@@ -74,6 +76,11 @@ class AcceptedVersionController extends Controller
      */
     public function edit($id)
     {
+
+        if($id==10000){
+            $setting=Setting::find(1);
+            return view('AdminPanel.PagesContent.AcceptedVersion.setting')->with('setting',$setting);
+        }
         $type=$this->acceptedVersion->AcceptedVersionRepository->find($id);
         return view('AdminPanel.PagesContent.AcceptedVersion.form')->with('type',$type);
     }
@@ -91,6 +98,24 @@ class AcceptedVersionController extends Controller
         $validated= $request->validated();
         $type=$this->acceptedVersion->AcceptedVersionRepository->update($validated,$id);
         return redirect()->route('AcceptedVersion.index')->with('message','Type Created Successfully');
+
+    }
+
+    public function updateSetting(Request $request)
+    {
+
+        $inputs = $request->all();
+        $setting=Setting::where('id',1)->first();
+        if(!empty($setting)){
+            $setting->show_wallet =$inputs['show_wallet'];
+            $setting->show_welcome_programme =$inputs['show_welcome_programme'];
+            $setting->show_fawry_payemnt =$inputs['show_fawry_payemnt'];
+            $setting->save();
+        }
+
+        $types=$this->acceptedVersion->AcceptedVersionRepository->getAll();
+        $setting=Setting::all();
+        return view('AdminPanel.PagesContent.AcceptedVersion.index')->with('types',$types)->with('setting',$setting);
 
     }
 

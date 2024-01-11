@@ -43,6 +43,7 @@ use App\Models\UserWallet;
 use App\Models\OrderDeliveryStation ;
 use App\Models\OrderDeliveryStatus ;
 
+use App\Models\WalletHistory;
 use Illuminate\Http\Request;
 use App\Http\Services\OrderLinesService;
 use Illuminate\Support\Facades\DB;
@@ -286,12 +287,20 @@ class OrderHeaderController extends HomeController
     public function importOrderSheet(importUsersRequest $request)
     {
         $validated = $request->validated();
+
         try {
+//            $file=request()->file('file');
+//            $rand='admin_id'.Auth::guard('admin')->user()->id.'_date_'.Carbon::now()->format('Y-m-d');
+//            $Name = $rand.'.'.$file->extension();
+//            $folder = 'uploadedsheets/'.$Name;
+//            $file->move(public_path($folder), $Name);
+
             Excel::import(new OrdersImport(), request()->file('file'));
             return redirect()->back()->with('message', 'Orders Updated Successfully');
         }
         catch (\Exception $exception) {
-            return redirect()->back()->withErrors(['error' => 'Orders Error in Export']);
+            dd($exception);
+            return redirect()->back()->withErrors(['error' => 'Orders Error in Import']);
         }
     }
 
@@ -348,6 +357,7 @@ class OrderHeaderController extends HomeController
         $admin_id     = request()->input('admin_id');
         $plat_type    = request()->input('type');
         $platform     = isset($plat_type) && $plat_type && $plat_type == 'admin' ? "admin" : "onLine";
+
         if (!$user_id){
              $user_id = $platform == 'admin' ? 1 : 2;
         }
@@ -387,6 +397,7 @@ class OrderHeaderController extends HomeController
                 $this->OrderLinesService->deleteCartAndCartHeader($data['user_id'], $data['user_id']);
                 if ($platform == 'onLine') {
                     // send to oracle
+//                    dd($platform);
                     $this->PaymentService->sendOrderToOracleEventNettingHup($order->id);
                 }
             }
@@ -791,6 +802,22 @@ class OrderHeaderController extends HomeController
                 $orderHeader->order_status    = 'Cancelled';
                 $orderHeader->payment_status  = 'CANCELED';
                 $orderHeader->canceled_reason = $request->canceled_reason;
+                if($orderHeader->wallet_used_amount > 0){
+                    $UserWallet = $this->UserService->getMyUserWallet($orderHeader->user_id);
+                    if(!empty($UserWallet)){
+                        $updaetWallet=[
+                            "current_wallet"=>$UserWallet->current_wallet+$orderHeader->wallet_used_amount,
+                            "used_wallet"=>$UserWallet->used_wallet-$orderHeader->wallet_used_amount
+                        ];
+                        $this->UserService->updateMyUserWallet(['user_id' => $orderHeader->user_id],$updaetWallet);
+                        WalletHistory::create([
+                            'user_id'    => $orderHeader->user_id,
+                            'user_commission_id'   => $orderHeader->id,
+                            'type'   => 'returnfromcancel',
+                            'amount'     => ($orderHeader->wallet_used_amount)
+                        ]);
+                    }
+                }
                 $orderHeader->save();
                 return redirect()->back()->with('message', 'Products updated success');
             }
@@ -849,7 +876,7 @@ class OrderHeaderController extends HomeController
     {
         $validated = $request->validated();
         try {
-            return Excel::download(new ShippingSheetSheetExport($validated['start_date'], $validated['end_date']), 'orders.xlsx');
+            return Excel::download(new ShippingSheetSheetExport($validated['start_date'], $validated['end_date']), 'ordersUsedWallet.xlsx');
         }
         catch (\Exception $exception) {
 
@@ -886,7 +913,7 @@ class OrderHeaderController extends HomeController
         $orders_numbers = 0 ;
         $order_delivered_numbers = 0 ;
         $myllerz = new Myllerz();
-        $day = Carbon::now()->format('Y-m-d'); 
+        $day = Carbon::now()->format('Y-m-d');
         $to_day = Carbon::now()->addDays(5)->format('Y-m-d');
         if($request->from)
         {
@@ -896,45 +923,27 @@ class OrderHeaderController extends HomeController
         {
             $to_day = $request->to ;
         }
-        $orders_query = OrderHeader::leftJoin('order_delivery_status','order_delivery_status.order_id','=',
+        $orders = OrderHeader::leftJoin('order_delivery_status','order_delivery_status.order_id','=',
         'id')
         ->where('order_headers.created_at','>',$day.' 00:00:00')
         ->where('order_headers.created_at','<',$to_day.' 23:59:59')
         ->where('order_status','!=','Cancelled')
         ->where('order_status','!=','Delivered')
-        ->where('oracle_flag',1) 
-        ->when($request->update, function ($query) use($request)
+        ->where('oracle_flag',1)
+        ->when($request->update, function ($query)
         {
-            if(isset($request->not_updated_today))
-            {
-            
-                return $query->where('order_delivery_status.updated_at', '<', Carbon::now()->format('Y-m-d') . ' 00:00:00');
-                
-            }
-            else
-            {
-                return $query; 
-            }
-          
+            return $query->where('order_delivery_status.updated_at', '<', Carbon::now()->format('Y-m-d') . ' 00:00:00');
         }, function ($query) {
             return $query->whereNull('order_delivery_status.order_id');
-        });
-        $orders_count = $orders_query->count();
-        $orders= $orders_query->limit(100)->get();
-        if($request->show_orders)
-        {
-            tap($orders, function ($collection) {
-            // Use dd or dump here as needed
-            dd($collection->toArray());
-            });
-        }
+        })
+        ->limit(50)->get();
        // dd($orders);
         if(!empty($orders))
         {
             foreach ($orders as $key => $order) {
               $res = null ;
-              $res =  $myllerz->get_order_stations($order->id,$order->barcode);
-            
+              $res =  $myllerz->get_order_stations($order->id);
+
               if(!isset($res[0])) continue;
               $res = $res[0];
               $Barcode = $res->Barcode;
@@ -957,10 +966,10 @@ class OrderHeaderController extends HomeController
                     ] ;
                     OrderDeliveryStation::create($station);
 
-                    if(++$i === $numItems) 
+                    if(++$i === $numItems)
                     {
                         //'shipped','In Transit','At Warehouse','Out For Delivery','Delivered','Un-Delivered','Cancelled'
-                        
+
                         if($status == 'Delivered, Thank you :-)')
                         {
                             $order_delivered_numbers ++ ;
@@ -969,15 +978,15 @@ class OrderHeaderController extends HomeController
                             $order->payment_status ='PAID' ;
                             $order->delivery_date =$status_time ;
                         }
-                        if($status == 'Out for Delivery' 
+                        if($status == 'Out for Delivery'
                         || $status == 'Re-attempt Delivery'
                         || $status == 'Rescheduled'
-                        ) 
+                        )
                         {
                             $order->delivery_status ='Out For Delivery' ;
                             $order->order_status ='Out For Delivery' ;
                         }
-                        if($status == 'In-Transit') 
+                        if($status == 'In-Transit')
                         {
                             $order->delivery_status ='In-Transit' ;
                             $order->order_status ='In Transit' ;
@@ -988,7 +997,7 @@ class OrderHeaderController extends HomeController
                          $order->order_status ='shipped' ;
                         }
                         if($status == 'Not Picked Yet') $order->delivery_status ='Not Picked Yet' ;
-                        if($status == 'Picked') 
+                        if($status == 'Picked')
                         {
                             $order->delivery_status ='Picked' ;
                             $order->order_status ='shipped' ;
@@ -1001,12 +1010,29 @@ class OrderHeaderController extends HomeController
                             $order->canceled_reason ='Rejected by Customer ( Myllerz )' ;
                             $order->delivery_status ='Rejected by Customer' ;
                             $order->order_status ='Cancelled' ;
+                            if($order->wallet_used_amount > 0){
+                                $UserWallet = $this->UserService->getMyUserWallet($order->user_id);
+                                if(!empty($UserWallet)){
+                                    $updaetWallet=[
+                                        "current_wallet"=>$UserWallet->current_wallet+$order->wallet_used_amount,
+                                        "used_wallet"=>$UserWallet->used_wallet-$order->wallet_used_amount
+                                    ];
+                                    $this->UserService->updateMyUserWallet(['user_id' => $order->user_id],$updaetWallet);
+                                    WalletHistory::create([
+                                        'user_id'    => $order->user_id,
+                                        'user_commission_id'   => $order->id,
+                                        'type'   => 'returnfromcancel',
+                                        'amount'     => ($order->wallet_used_amount)
+                                    ]);
+                                }
+                            }
                         }
-                        if($status == 'Damaged' || $status == 'Lost') 
+                        if($status == 'Damaged' || $status == 'Lost')
                         {
                             $order->delivery_status ='Cancelled by Myllerz' ;
                             $order->order_status ='Cancelled' ;
                         }
+
                         $order->save();
                         $order_status = [
                                 'order_id' => $order->id,
@@ -1016,14 +1042,13 @@ class OrderHeaderController extends HomeController
                         OrderDeliveryStatus::create($order_status);
                     }
                 }
-             
+
               }
 
             }
-          
+
         }
         $updated = '';if($request->update)$updated = 'updated' ;
-        echo "all orders $orders_count <br>";
         echo "done $updated from $day to $to_day <br>";
         echo "done $updated $orders_numbers fetched total <br>";
         echo "done $updated $order_delivered_numbers  fetched delivered<br>";

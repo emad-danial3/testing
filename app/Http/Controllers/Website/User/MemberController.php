@@ -10,6 +10,7 @@ use App\Models\City;
 use App\Models\Country;
 use App\Models\OrderHeader;
 use App\Models\UserMembership;
+use App\Models\WalletHistory;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
@@ -228,6 +229,24 @@ class MemberController extends Controller
             $orderHeader->payment_status  = 'CANCELED';
             $orderHeader->canceled_reason = $data['canceled_reason'];
             $orderHeader->save();
+            if($orderHeader->wallet_used_amount > 0){
+                $UserWallet = $this->UserService->getMyUserWallet($orderHeader->user_id);
+                if(!empty($UserWallet)){
+                    $updaetWallet=[
+                        "current_wallet"=>$UserWallet->current_wallet+$orderHeader->wallet_used_amount,
+                        "used_wallet"=>$UserWallet->used_wallet-$orderHeader->wallet_used_amount
+                    ];
+                    $this->UserService->updateMyUserWallet(['user_id' => $orderHeader->user_id],$updaetWallet);
+                    WalletHistory::create([
+                        'user_id'    => $orderHeader->user_id,
+                        'user_commission_id'   => $orderHeader->id,
+                        'type'   => 'returnfromcancel',
+                        'amount'     => ($orderHeader->wallet_used_amount)
+                    ]);
+                }
+            }
+
+
             return redirect()->back()->with('message', 'Order Cancel success');
         }
         return redirect()->back()->withErrors(['error' => 'no order To cancel']);

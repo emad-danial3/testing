@@ -98,6 +98,7 @@ class IUserRepository extends BaseRepository implements UserRepository
     {
 //         $startMonth  = Carbon::now()->startOfMonth()->toDateTimeString();
 //         $endMonth    = Carbon::now()->endOfMonth()->toDateTimeString();
+
    if (!$date_from || !$date_to) {
             $startMonth = Carbon::now()->startOfMonth()->toDateTimeString();
             $endMonth   = Carbon::now()->endOfMonth()->toDateTimeString();
@@ -106,6 +107,7 @@ class IUserRepository extends BaseRepository implements UserRepository
             $startMonth = $date_from;
             $endMonth   = $date_to;
         }
+
          if($new)
              return AccountLevel::where('parent_id',$user_id)->where('level',$generation)->whereBetween('created_at', [$startMonth, $endMonth])->distinct()->get()->pluck('child_id')->toArray();
 

@@ -195,6 +195,15 @@
                                         <h4 class="price theme-color">{!! $order['order_header']->shipping_amount >0 ?$order['order_header']->shipping_amount .' LE': '<del>50 LE</del>'  !!}
                                         </h4>
                                     </li>
+
+                                    @if($order['order_header']->wallet_used_amount > 0)
+                                        <li>
+                                            <h4>{{trans('website.wallet',[],session()->get('locale'))}}</h4>
+                                            <h4 class="price theme-color">{{$order['order_header']->wallet_used_amount}}
+                                                LE </h4>
+                                        </li>
+                                    @endif
+
                                     @if($giftPrice > 0)
                                         <li>
                                             <h4>Gift Price</h4>
@@ -208,7 +217,7 @@
                                 <ul class="summery-total">
                                     <li class="list-total">
                                         <h4>Total Order</h4>
-                                        <h4 class="price">{{$totalOrder}} LE</h4>
+                                        <h4 class="price">{{($totalOrder-$order['order_header']->wallet_used_amount)}} LE</h4>
                                     </li>
                                 </ul>
                             </div>
